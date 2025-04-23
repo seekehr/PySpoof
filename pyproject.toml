@@ -1,0 +1,19 @@
+[project]
+name = "mypcdetails"
+version = "0.1.0"
+description = "Get your PC details through the CLI"
+authors = [
+    { name = "Seeker", email = "grouchyseeker@gmail.com" }
+]
+dependencies = [
+]
+
+[tool.black]
+line-length = 88  # Optional: for auto-formatting with black
+
+[tool.isort]
+profile = "black"  # Optional: for sorting imports with isort
+
+[build-system]
+requires = []
+build-backend = "setuptools.build_meta"
