@@ -1,24 +1,27 @@
+import asyncio
 import platform
 from systeminformation import SystemInformation
 import winreg
 import wmi
 import time
 from colorama import Fore, Back, Style
+from colorama import init
+init(autoreset=True)
 
 start_time = time.time()
-w = wmi.WMI()
 
-reg_conn = winreg.ConnectRegistry(None, winreg.HKEY_LOCAL_MACHINE)  # Connect to local machine's HKEY_LOCAL_MACHINE
+async def main():
+    sys_info = SystemInformation()
+    print("Starting to load system information asynchronously...")
+    await sys_info.load_system_info_async()
+    sys_info.print()
+    print("Finished loading. Time:", time.time() - start_time)
 
 if __name__ == "__main__":
-    if platform.system() == "Windows" and reg_conn:
-        i = 0
-        for i in range(10):
-            si = SystemInformation(reg_conn)
-            si.print()
-            execution_time = time.time() - start_time
-        print(f"{Fore.RED}Execution time{Fore.RESET}:{execution_time}")
-
+    # On Windows, ProactorEventLoop is the default for asyncio,
+    # which works well with the ThreadPoolExecutor used here.
+    # For other platforms, the default event loop should also be fine.
+    asyncio.run(main())
 
 
 
