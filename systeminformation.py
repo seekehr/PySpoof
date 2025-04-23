@@ -6,7 +6,7 @@ import wmi
 import winreg
 import socket
 import requests
-
+from colorama import Fore, Back, Style
 
 class SystemInformation:
     def __init__(self, reg_conn: HKEYType):
@@ -23,15 +23,15 @@ class SystemInformation:
         self.__public_ip = self._public_ip()
 
     def print(self):
-        print("MAC: " + (self.mac or "Invalid MAC"))
-        print("CPUID: " + (self.cpuid or "Invalid CPUID"))
-        print("Motherboard: " + (self.motherboard or "Invalid Motherboard number"))
-        print("BIOS: " + (self.bios or "Invalid BIOS number"))
-        print("DISK Serial: " + (self.disk_serial or "Invalid Serial"))
-        print("Machine GUID: " + (self.machine_guid or "Invalid Machine GUID"))
-        print("UUID: " + (self.uuid or "Invalid UUID"))
-        print("Local IP: " + (self.local_ip or "Invalid Local IP"))
-        print("Public IP: " + (self.public_ip or "Invalid Public IP"))
+        print(Fore.GREEN + "MAC: " + Fore.RESET + (self.mac or "Invalid MAC"))
+        print(Fore.GREEN + "CPUID: " + Fore.RESET + (self.cpuid or "Invalid CPUID"))
+        print(Fore.GREEN + "Motherboard: " + Fore.RESET + (self.motherboard or "Invalid Motherboard number"))
+        print(Fore.GREEN + "BIOS: " + Fore.RESET + (self.bios or "Invalid BIOS number"))
+        print(Fore.GREEN + "DISK Serial: " + Fore.RESET + (self.disk_serial or "Invalid Serial"))
+        print(Fore.GREEN + "Machine GUID: " + Fore.RESET + (self.machine_guid or "Invalid Machine GUID"))
+        print(Fore.GREEN + "UUID: " + Fore.RESET + (self.uuid or "Invalid UUID"))
+        print(Fore.GREEN + "Local IP: " + Fore.RESET + (self.local_ip or "Invalid Local IP"))
+        print(Fore.GREEN + "Public IP: " + Fore.RESET + (self.public_ip or "Invalid Public IP"))
 
     @property
     def mac(self):
@@ -117,7 +117,6 @@ class SystemInformation:
             lines = [line.strip() for line in uuid_output.split('\n') if line.strip()]
             if len(lines) > 1:  # First line is header, second line should be UUID
                 theUuid = lines[1]
-                print(f"System UUID: {theUuid}")
                 return theUuid
             else:
                 print("UUID not found in output")
