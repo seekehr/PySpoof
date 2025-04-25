@@ -14,6 +14,7 @@ import asyncio
 import concurrent.futures
 from utils.ERROR import ERROR
 import machineid
+import re # Import re for SID parsing
 
 class SystemInformation:
     def __init__(self):
@@ -32,6 +33,7 @@ class SystemInformation:
         self.__volume_serial = None
         self.__processor_id = None
         self.__disk_model = None
+        self.__user_sid = None # Added user SID attribute
 
     async def load_system_info_async(self):
         loop = asyncio.get_running_loop()
@@ -51,7 +53,8 @@ class SystemInformation:
             'os_serial': loop.run_in_executor(None, self._os_serial),
             'volume_serial': loop.run_in_executor(None, self._volumeserial),
             'processor_id': loop.run_in_executor(None, self._processor_id),
-            'disk_model': loop.run_in_executor(None, self._disk_model)
+            'disk_model': loop.run_in_executor(None, self._disk_model),
+            'user_sid': loop.run_in_executor(None, self._user_sid) # Added user SID task
         }
 
         results = await asyncio.gather(*tasks.values())
@@ -72,9 +75,13 @@ class SystemInformation:
             print(Fore.GREEN + "BIOS: " + Fore.RESET + (self.bios or "Invalid BIOS number"))
             print(Fore.GREEN + "Machine GUID: " + Fore.RESET + (self.machine_guid or "Invalid Machine GUID"))
             print(Fore.YELLOW + "==============" + Fore.LIGHTMAGENTA_EX + "os" + Fore.YELLOW + "==============" + Fore.RESET)
-            timeStampToDate = datetime.datetime.strptime(self.installdate, '%Y%m%d%H%M%S')
-            print(Fore.GREEN + "Windows installed: " + Fore.RESET + str(timeStampToDate) + " || " + self.installdate)
+            if self.installdate: # Check if installdate is not None before parsing
+                timeStampToDate = datetime.datetime.strptime(self.installdate, '%Y%m%d%H%M%S')
+                print(Fore.GREEN + "Windows installed: " + Fore.RESET + str(timeStampToDate) + " || " + self.installdate)
+            else:
+                print(Fore.GREEN + "Windows installed: " + Fore.RESET + "Invalid Install Date")
             print(Fore.GREEN + "OS Serial: " + Fore.RESET + (self.osserial or "Invalid OS Serial"))
+            print(Fore.GREEN + "User SID: " + Fore.RESET + (self.user_sid or "Invalid User SID")) # Added user SID print
             print(Fore.YELLOW + "==============" + Fore.LIGHTMAGENTA_EX + "NET" + Fore.YELLOW + "==============" + Fore.RESET)
             print(Fore.GREEN + "MAC Address: " + Fore.RESET + (self.mac or "Invalid MAC"))
             print(Fore.GREEN + "Local IP: " + Fore.RESET + (self.local_ip or "Invalid Local IP"))
@@ -147,6 +154,10 @@ class SystemInformation:
     @property
     def disk_model(self):
         return self.__disk_model
+
+    @property
+    def user_sid(self):
+        return self.__user_sid
 
     # --- Existing data fetching methods (remain largely unchanged) ---
 
@@ -332,4 +343,67 @@ class SystemInformation:
         except Exception as e:
             pythoncom.CoUninitialize()
             print(f"{ERROR} {{Disk Model}}: {e}")
+            return None
+
+    # Reverted back to subprocess for fetching User SID, using regex for parsing
+    def _user_sid(self):
+        try:
+            # Execute the command and capture output
+            # Hide console window popup
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            startupinfo.wShowWindow = subprocess.SW_HIDE
+
+            # Use shell=False if possible for security, works for whoami
+            # Specify common encodings to try for decoding
+            encodings_to_try = ['utf-8', 'cp437', 'latin-1']
+            output = None
+            stderr = None
+
+            process = subprocess.Popen(['whoami', '/user'], 
+                                       stdout=subprocess.PIPE, 
+                                       stderr=subprocess.PIPE, 
+                                       startupinfo=startupinfo,
+                                       shell=False) 
+            stdout_bytes, stderr_bytes = process.communicate()
+
+            if process.returncode != 0:
+                 error_message = f"'whoami /user' command failed with return code {process.returncode}."
+                 for enc in encodings_to_try:
+                     try:
+                         stderr = stderr_bytes.decode(enc)
+                         error_message += f" Stderr ({enc}): {stderr.strip()}"
+                         break # Stop decoding on success
+                     except UnicodeDecodeError:
+                         continue
+                 print(f"{ERROR} {{User SID}}: {error_message}")
+                 return None
+
+            # Attempt to decode stdout using different encodings
+            for enc in encodings_to_try:
+                try:
+                    output = stdout_bytes.decode(enc)
+                    break # Stop decoding on success
+                except UnicodeDecodeError:
+                    continue
+            
+            if output is None:
+                print(f"{ERROR} {{User SID}}: Could not decode 'whoami /user' output with tried encodings.")
+                return None
+
+            # Use regex to find the SID (S-1- followed by digits and hyphens)
+            # This looks for the SID pattern at the end of a line, potentially preceded by whitespace
+            match = re.search(r"\b(S-1(?:-\d+)+)\s*$", output, re.MULTILINE)
+
+            if match:
+                return match.group(1) # Return the captured SID string
+            else:
+                print(f"{ERROR} {{User SID}}: Could not parse SID from whoami output:\n{output}")
+                return None
+        
+        except FileNotFoundError:
+            print(f"{ERROR} {{User SID}}: 'whoami' command not found. Ensure it's in the system PATH.")
+            return None
+        except Exception as e:
+            print(f"{ERROR} {{User SID}}: Unexpected error: {e}")
             return None
