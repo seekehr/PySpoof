@@ -15,6 +15,7 @@ import concurrent.futures
 from utils.ERROR import ERROR
 import machineid
 
+
 class SystemInformation:
     def __init__(self):
         self.__hostname = None
@@ -31,13 +32,14 @@ class SystemInformation:
         self.__os_serial = None
         self.__volume_serial = None
         self.__processor_id = None
+        self.__disk_model = None  # New attribute for disk model
 
     async def load_system_info_async(self):
         loop = asyncio.get_running_loop()
 
         # Find all info asynchronously
         tasks = {
-            'hostname': loop.run_in_executor(None, self._hostname),
+            'hostname': loop.run_in_executor(None, self.__hostname),
             'mac': loop.run_in_executor(None, self._mac),
             'motherboard': loop.run_in_executor(None, self._motherboard),
             'bios': loop.run_in_executor(None, self._bios),
@@ -49,7 +51,8 @@ class SystemInformation:
             'installdate': loop.run_in_executor(None, self._install_date),
             'os_serial': loop.run_in_executor(None, self._os_serial),
             'volume_serial': loop.run_in_executor(None, self._volumeserial),
-            'processor_id': loop.run_in_executor(None, self._processor_id)
+            'processor_id': loop.run_in_executor(None, self._processor_id),
+            'disk_model': loop.run_in_executor(None, self._disk_model)  # Adding disk model task
         }
 
         results = await asyncio.gather(*tasks.values())
@@ -59,31 +62,35 @@ class SystemInformation:
             setattr(self, f'_{self.__class__.__name__}__{key}', results[i])
         self._loaded = True
 
-
     def print(self):
         try:
-            print(Fore.YELLOW + "==============" + Fore.LIGHTMAGENTA_EX + "PC" + Fore.YELLOW + "==============" + Fore.RESET)
+            print(
+                Fore.YELLOW + "==============" + Fore.LIGHTMAGENTA_EX + "PC" + Fore.YELLOW + "==============" + Fore.RESET)
             print(Fore.GREEN + "Hostname: " + Fore.RESET + (self.hostname or "Invalid Hostname"))
             print(Fore.GREEN + "Processor ID: " + Fore.RESET + (self.processor_id or "Invalid Processor ID"))
             print(Fore.GREEN + "UUID: " + Fore.RESET + (self.uuid or "Invalid UUID"))
             print(Fore.GREEN + "Motherboard: " + Fore.RESET + (self.motherboard or "Invalid Motherboard number"))
             print(Fore.GREEN + "BIOS: " + Fore.RESET + (self.bios or "Invalid BIOS number"))
             print(Fore.GREEN + "Machine GUID: " + Fore.RESET + (self.machine_guid or "Invalid Machine GUID"))
-            print(Fore.YELLOW + "==============" + Fore.LIGHTMAGENTA_EX + "os" + Fore.YELLOW + "==============" + Fore.RESET)
+            print(
+                Fore.YELLOW + "==============" + Fore.LIGHTMAGENTA_EX + "os" + Fore.YELLOW + "==============" + Fore.RESET)
             timeStampToDate = datetime.datetime.strptime(self.installdate, '%Y%m%d%H%M%S')
             print(Fore.GREEN + "Windows installed: " + Fore.RESET + str(timeStampToDate) + " || " + self.installdate)
             print(Fore.GREEN + "OS Serial: " + Fore.RESET + (self.osserial or "Invalid OS Serial"))
-            print(Fore.YELLOW + "==============" + Fore.LIGHTMAGENTA_EX + "NET" + Fore.YELLOW + "==============" + Fore.RESET)
+            print(
+                Fore.YELLOW + "==============" + Fore.LIGHTMAGENTA_EX + "NET" + Fore.YELLOW + "==============" + Fore.RESET)
             print(Fore.GREEN + "MAC Address: " + Fore.RESET + (self.mac or "Invalid MAC"))
             print(Fore.GREEN + "Local IP: " + Fore.RESET + (self.local_ip or "Invalid Local IP"))
             print(Fore.GREEN + "Public IP: " + Fore.RESET + (self.public_ip or "Invalid Public IP"))
-            print(Fore.YELLOW + "==============" + Fore.LIGHTMAGENTA_EX + "DISK" + Fore.YELLOW + "==============" + Fore.RESET)
+            print(
+                Fore.YELLOW + "==============" + Fore.LIGHTMAGENTA_EX + "DISK" + Fore.YELLOW + "==============" + Fore.RESET)
             print(Fore.GREEN + "Disk Serial: " + Fore.RESET + (self.disk_serial or "Invalid Serial"))
             print(Fore.GREEN + "Volume Serial: " + Fore.RESET + (self.volume_serial or "Invalid Volume Serial"))
+            print(Fore.GREEN + "Disk Model: " + Fore.RESET + (
+                        self.disk_model or "Invalid Disk Model"))  # Print disk model
 
         except Exception as e:
             print(f"{ERROR} Could not print. Error: {e}")
-
 
     @property
     def hostname(self):
@@ -140,6 +147,10 @@ class SystemInformation:
     @property
     def processor_id(self):
         return self.__processor_id
+
+    @property
+    def disk_model(self):  # Getter for disk model
+        return self.__disk_model
 
     # --- Existing data fetching methods (remain largely unchanged) ---
 
@@ -248,28 +259,14 @@ class SystemInformation:
         try:
             pythoncom.CoInitializeEx(pythoncom.COINIT_APARTMENTTHREADED)
             local_wmi = wmi.WMI()
-            for hardware in local_wmi.Win32_OperatingSystem():
-                if hardware.InstallDate:
+            for os in local_wmi.Win32_OperatingSystem():
+                if os.InstallDate:
+                    install_date = os.InstallDate.split('.')[0]  # Strip milliseconds
                     pythoncom.CoUninitialize()
-                    return hardware.InstallDate.split('.')[0]
+                    return install_date
             return None
         except Exception as e:
-            print(f"{ERROR} {{DISK}}: {e}")
-            return None
-
-    def _hostname(self):
-        try:
-            pythoncom.CoInitializeEx(pythoncom.COINIT_APARTMENTTHREADED)
-            local_wmi = wmi.WMI()
-            for system in local_wmi.Win32_ComputerSystem():
-                if system.Name:
-                    pythoncom.CoUninitialize()
-                    return system.Name
-            pythoncom.CoUninitialize()
-            return None
-        except Exception as e:
-            pythoncom.CoUninitialize()
-            print(f"{ERROR} {{HOSTNAME}}: {e}")
+            print(f"[ERROR] {{Install Date}}: {e}")
             return None
 
     def _os_serial(self):
@@ -282,20 +279,20 @@ class SystemInformation:
                     return os.SerialNumber
             return None
         except Exception as e:
-            print(f"{ERROR} {{OS SERIAL}}: {e}")
+            print(f"{ERROR} {{OS Serial}}: {e}")
             return None
 
     def _volumeserial(self):
         try:
             pythoncom.CoInitializeEx(pythoncom.COINIT_APARTMENTTHREADED)
             local_wmi = wmi.WMI()
-            for disk in local_wmi.Win32_LogicalDisk():
-                if disk.VolumeSerialNumber:
+            for volume in local_wmi.Win32_LogicalDisk():
+                if volume.VolumeSerialNumber:
                     pythoncom.CoUninitialize()
-                    return disk.VolumeSerialNumber
+                    return volume.VolumeSerialNumber
             return None
         except Exception as e:
-            print(f"{ERROR} {{VOLUME SERIAL}}: {e}")
+            print(f"{ERROR} {{Volume Serial}}: {e}")
             return None
 
     def _processor_id(self):
@@ -309,4 +306,15 @@ class SystemInformation:
             return None
         except Exception as e:
             print(f"{ERROR} {{Processor ID}}: {e}")
+            return None
+
+    def _disk_model(self):  # Function to fetch disk model
+        try:
+            result = subprocess.run("wmic diskdrive get model", capture_output=True, text=True, shell=True)
+            if result.returncode == 0:
+                model = result.stdout.splitlines()[1].strip()  # Extracting the model from the output
+                return model
+            return None
+        except Exception as e:
+            print(f"{ERROR} {{Disk Model}}: {e}")
             return None
