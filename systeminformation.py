@@ -31,6 +31,7 @@ class SystemInformation:
         self.__os_serial = None
         self.__volume_serial = None
         self.__processor_id = None
+        self.__disk_model = None
 
     async def load_system_info_async(self):
         loop = asyncio.get_running_loop()
@@ -49,7 +50,8 @@ class SystemInformation:
             'installdate': loop.run_in_executor(None, self._install_date),
             'os_serial': loop.run_in_executor(None, self._os_serial),
             'volume_serial': loop.run_in_executor(None, self._volumeserial),
-            'processor_id': loop.run_in_executor(None, self._processor_id)
+            'processor_id': loop.run_in_executor(None, self._processor_id),
+            'disk_model': loop.run_in_executor(None, self._disk_model)
         }
 
         results = await asyncio.gather(*tasks.values())
@@ -80,6 +82,7 @@ class SystemInformation:
             print(Fore.YELLOW + "==============" + Fore.LIGHTMAGENTA_EX + "DISK" + Fore.YELLOW + "==============" + Fore.RESET)
             print(Fore.GREEN + "Disk Serial: " + Fore.RESET + (self.disk_serial or "Invalid Serial"))
             print(Fore.GREEN + "Volume Serial: " + Fore.RESET + (self.volume_serial or "Invalid Volume Serial"))
+            print(Fore.GREEN + "Disk Model: " + Fore.RESET + (self.disk_model or "Invalid Disk Model"))
 
         except Exception as e:
             print(f"{ERROR} Could not print. Error: {e}")
@@ -140,6 +143,10 @@ class SystemInformation:
     @property
     def processor_id(self):
         return self.__processor_id
+
+    @property
+    def disk_model(self):
+        return self.__disk_model
 
     # --- Existing data fetching methods (remain largely unchanged) ---
 
@@ -309,4 +316,20 @@ class SystemInformation:
             return None
         except Exception as e:
             print(f"{ERROR} {{Processor ID}}: {e}")
+            return None
+
+    def _disk_model(self):
+        try:
+            pythoncom.CoInitializeEx(pythoncom.COINIT_APARTMENTTHREADED)
+            local_wmi = wmi.WMI()
+            for disk in local_wmi.Win32_DiskDrive():
+                if disk.Model:
+                    pythoncom.CoUninitialize()
+                    # WMIC might return extra spaces, strip them
+                    return disk.Model.strip()
+            pythoncom.CoUninitialize()
+            return None
+        except Exception as e:
+            pythoncom.CoUninitialize()
+            print(f"{ERROR} {{Disk Model}}: {e}")
             return None
