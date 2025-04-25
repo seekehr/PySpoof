@@ -14,7 +14,7 @@ import asyncio
 import concurrent.futures
 from utils.ERROR import ERROR
 import machineid
-import re # Import re for SID parsing
+import re
 
 class SystemInformation:
     def __init__(self):
@@ -33,15 +33,22 @@ class SystemInformation:
         self.__volume_serial = None
         self.__processor_id = None
         self.__disk_model = None
-        self.__user_sid = None # Added user SID attribute
+        self.__user_sid = None
+        # WLAN Info Attributes
+        self.__wlan_guid = None
+        self.__wlan_physical_address = None
+        self.__wlan_bssid = None
+        # Computer system properties
+        self.__computersystem_properties = None
+        self.__computersystem_length = None
 
     async def load_system_info_async(self):
         loop = asyncio.get_running_loop()
 
-        # Find all info asynchronously
+        # --- Individual info tasks ---
         tasks = {
             'hostname': loop.run_in_executor(None, self._hostname),
-            'mac': loop.run_in_executor(None, self._mac),
+            'mac': loop.run_in_executor(None, self._mac), # General MAC (usually Ethernet first)
             'motherboard': loop.run_in_executor(None, self._motherboard),
             'bios': loop.run_in_executor(None, self._bios),
             'disk_serial': loop.run_in_executor(None, self._disk_serial),
@@ -54,14 +61,42 @@ class SystemInformation:
             'volume_serial': loop.run_in_executor(None, self._volumeserial),
             'processor_id': loop.run_in_executor(None, self._processor_id),
             'disk_model': loop.run_in_executor(None, self._disk_model),
-            'user_sid': loop.run_in_executor(None, self._user_sid) # Added user SID task
+            'user_sid': loop.run_in_executor(None, self._user_sid),
+            # --- Combined WLAN info task ---
+            'wlan_info': loop.run_in_executor(None, self._wlan_info), # Fetches Guid, Phys Addr, BSSID together
+            # --- Computer system properties ---
+            'computersystem_info': loop.run_in_executor(None, self._computersystem_info)
         }
 
-        results = await asyncio.gather(*tasks.values())
+        # Run all tasks concurrently
+        results = await asyncio.gather(*tasks.values(), return_exceptions=True) # Handle potential exceptions
 
+        # Process results
         keys = list(tasks.keys())
         for i, key in enumerate(keys):
-            setattr(self, f'_{self.__class__.__name__}__{key}', results[i])
+            result = results[i]
+            if isinstance(result, Exception):
+                print(f"{ERROR} Task '{key}' failed: {result}")
+                # Set corresponding attributes to None or keep default
+                if key == 'wlan_info':
+                    self.__wlan_guid = None
+                    self.__wlan_physical_address = None
+                    self.__wlan_bssid = None
+                elif key == 'computersystem_info':
+                    self.__computersystem_properties = None
+                    self.__computersystem_length = None
+                else:
+                     setattr(self, f'_{self.__class__.__name__}__{key}', None)
+            elif key == 'wlan_info':
+                # Distribute results from the combined WLAN task
+                self.__wlan_guid = result.get('guid')
+                self.__wlan_physical_address = result.get('physical_address')
+                self.__wlan_bssid = result.get('bssid')
+            elif key == 'computersystem_info':
+                self.__computersystem_length = result
+            else:
+                setattr(self, f'_{self.__class__.__name__}__{key}', result)
+
         self._loaded = True
 
 
@@ -74,6 +109,7 @@ class SystemInformation:
             print(Fore.GREEN + "Motherboard: " + Fore.RESET + (self.motherboard or "Invalid Motherboard number"))
             print(Fore.GREEN + "BIOS: " + Fore.RESET + (self.bios or "Invalid BIOS number"))
             print(Fore.GREEN + "Machine GUID: " + Fore.RESET + (self.machine_guid or "Invalid Machine GUID"))
+            print(Fore.GREEN + "ComputerSystem Properties Count: " + Fore.RESET + (str(self.computersystem_length) or "N/A"))
             print(Fore.YELLOW + "==============" + Fore.LIGHTMAGENTA_EX + "os" + Fore.YELLOW + "==============" + Fore.RESET)
             if self.installdate: # Check if installdate is not None before parsing
                 timeStampToDate = datetime.datetime.strptime(self.installdate, '%Y%m%d%H%M%S')
@@ -81,11 +117,12 @@ class SystemInformation:
             else:
                 print(Fore.GREEN + "Windows installed: " + Fore.RESET + "Invalid Install Date")
             print(Fore.GREEN + "OS Serial: " + Fore.RESET + (self.osserial or "Invalid OS Serial"))
-            print(Fore.GREEN + "User SID: " + Fore.RESET + (self.user_sid or "Invalid User SID")) # Added user SID print
+            print(Fore.GREEN + "User SID: " + Fore.RESET + (self.user_sid or "Invalid User SID"))
             print(Fore.YELLOW + "==============" + Fore.LIGHTMAGENTA_EX + "NET" + Fore.YELLOW + "==============" + Fore.RESET)
-            print(Fore.GREEN + "MAC Address: " + Fore.RESET + (self.mac or "Invalid MAC"))
-            print(Fore.GREEN + "Local IP: " + Fore.RESET + (self.local_ip or "Invalid Local IP"))
-            print(Fore.GREEN + "Public IP: " + Fore.RESET + (self.public_ip or "Invalid Public IP"))
+            print(Fore.GREEN + "General MAC: " + Fore.RESET + (self.mac or "Invalid MAC")) # Renamed for clarity
+            print(Fore.GREEN + "WLAN GUID: " + Fore.RESET + (self.wlan_guid or "N/A or Not Found"))
+            print(Fore.GREEN + "WLAN Phys Addr: " + Fore.RESET + (self.wlan_physical_address or "N/A or Not Found"))
+            print(Fore.GREEN + "WLAN BSSID: " + Fore.RESET + (self.wlan_bssid or "N/A or Not Connected"))
             print(Fore.YELLOW + "==============" + Fore.LIGHTMAGENTA_EX + "DISK" + Fore.YELLOW + "==============" + Fore.RESET)
             print(Fore.GREEN + "Disk Serial: " + Fore.RESET + (self.disk_serial or "Invalid Serial"))
             print(Fore.GREEN + "Volume Serial: " + Fore.RESET + (self.volume_serial or "Invalid Volume Serial"))
@@ -105,6 +142,7 @@ class SystemInformation:
 
     @property
     def mac(self):
+        # This returns the MAC from uuid.getnode(), often Ethernet but not guaranteed
         return self.__mac
 
     @property
@@ -159,13 +197,41 @@ class SystemInformation:
     def user_sid(self):
         return self.__user_sid
 
-    # --- Existing data fetching methods (remain largely unchanged) ---
+    # WLAN Properties
+    @property
+    def wlan_guid(self):
+        return self.__wlan_guid
 
+    @property
+    def wlan_physical_address(self):
+        return self.__wlan_physical_address
+
+    @property
+    def wlan_bssid(self):
+        return self.__wlan_bssid
+
+    @property
+    def computersystem_length(self):
+        return self.__computersystem_length
+
+    # --- Data Fetching Methods ---
     def _mac(self):
         try:
-            mac_num = hex(uuid.getnode()).replace('0x', '').upper()
-            mac = '-'.join(mac_num[i: i + 2] for i in range(0, 11, 2))
-            return mac
+            node = uuid.getnode()
+            mac_num = hex(node).replace('0x', '').upper()
+            # Pad with leading zeros if necessary (MAC is 12 hex digits)
+            mac_num = mac_num.zfill(12)
+            # Debug prints (temporary)
+            # print(f"DEBUG [MAC]: node={node}, hex={hex(node)}, mac_num={mac_num}")
+            # Ensure mac_num is exactly 12 chars before splitting
+            if len(mac_num) == 12:
+                mac_pairs = [mac_num[i: i + 2] for i in range(0, 12, 2)]
+                # print(f"DEBUG [MAC]: pairs={mac_pairs}")
+                mac = ':'.join(mac_pairs) # Use colon as standard separator
+                return mac
+            else:
+                print(f"{ERROR} {{MAC}}: Processed hex value '{mac_num}' has unexpected length {len(mac_num)}.")
+                return None
         except Exception as e:
             print(f"{ERROR} {{MAC}}: {e}")
             return None
@@ -391,7 +457,7 @@ class SystemInformation:
                 print(f"{ERROR} {{User SID}}: Could not decode 'whoami /user' output with tried encodings.")
                 return None
 
-            # Use regex to find the SID (S-1- followed by digits and hyphens)
+            # Use regex to find the SID (S-1 followed by digits and hyphens)
             # This looks for the SID pattern at the end of a line, potentially preceded by whitespace
             match = re.search(r"\b(S-1(?:-\d+)+)\s*$", output, re.MULTILINE)
 
@@ -406,4 +472,146 @@ class SystemInformation:
             return None
         except Exception as e:
             print(f"{ERROR} {{User SID}}: Unexpected error: {e}")
+            return None
+
+    # Added WLAN info method (fetches Guid, Phys Addr, BSSID together)
+    def _wlan_info(self):
+        wlan_info = {}
+        log_info = []
+
+        try:
+            # Execute the command and capture output, hide console
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            startupinfo.wShowWindow = subprocess.SW_HIDE
+            encodings_to_try = ['utf-8', 'cp437', 'latin-1']
+            output_decoded = None
+
+            process = subprocess.Popen(['netsh', 'wlan', 'show', 'interfaces'],
+                                       stdout=subprocess.PIPE,
+                                       stderr=subprocess.PIPE,
+                                       startupinfo=startupinfo,
+                                       shell=False)
+            stdout_bytes, stderr_bytes = process.communicate()
+
+            if process.returncode != 0:
+                # Try to decode stderr for a better error message
+                stderr_decoded = ""
+                for enc in encodings_to_try:
+                    try:
+                        stderr_decoded = stderr_bytes.decode(enc).strip()
+                        break
+                    except UnicodeDecodeError:
+                        continue
+                print(f"{ERROR} {{WLAN Info}}: 'netsh wlan show interfaces' failed. Code: {process.returncode}. Stderr: {stderr_decoded or '(undecodable)'}")
+                return wlan_info # Return empty dict on failure
+
+            # Try decoding stdout
+            for enc in encodings_to_try:
+                try:
+                    output_decoded = stdout_bytes.decode(enc)
+                    break
+                except UnicodeDecodeError:
+                    continue
+
+            if not output_decoded:
+                print(f"{ERROR} {{WLAN Info}}: Could not decode 'netsh' output.")
+                return wlan_info
+            
+            # Use regex to find the required fields
+            # Assuming only one active WLAN interface shown, or taking the first one
+            guid_match = re.search(r"GUID\s+:\s+(?:\{)?([0-9a-fA-F\-]+)(?:\})?", output_decoded, re.IGNORECASE)
+            pa_match = re.search(r"Physical address\s+:\s+((?:[0-9a-fA-F]{2}[:-]){5}[0-9a-fA-F]{2})", output_decoded)
+            bssid_match = re.search(r"BSSID\s+:\s+((?:[0-9a-fA-F]{2}[:-]){5}[0-9a-fA-F]{2})", output_decoded)
+
+            if guid_match:
+                wlan_info['guid'] = guid_match.group(1)
+            else:
+                log_info.append("Could not find WLAN GUID.")
+            if pa_match:
+                 # Normalize MAC to use hyphens like uuid.getnode()
+                wlan_info['physical_address'] = pa_match.group(1).replace(':', '-').upper()
+            else:
+                 log_info.append("Could not find WLAN Physical Address.")
+            if bssid_match:
+                # Normalize BSSID to use hyphens and uppercase
+                wlan_info['bssid'] = bssid_match.group(1).replace(':', '-').upper()
+            else:
+                # BSSID is often missing if not connected, this is usually expected
+                log_info.append("Could not find WLAN BSSID (likely not connected).")
+ 
+            # Print collected info messages if any fields were missing
+            if log_info:
+                print(f"[INFO] {{WLAN Info}}: {', '.join(log_info)}")
+
+            return wlan_info
+
+        except FileNotFoundError:
+            print(f"{ERROR} {{WLAN Info}}: 'netsh' command not found. Ensure it's in the system PATH.")
+            return wlan_info
+        except Exception as e:
+            print(f"{ERROR} {{WLAN Info}}: Unexpected error: {e}")
+            return wlan_info # Return empty dict on unexpected error
+
+    # Get computer system properties using WMIC and return the array length
+    def _computersystem_info(self):
+        try:
+            # Set up subprocess to hide console window
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            startupinfo.wShowWindow = subprocess.SW_HIDE
+            
+            # Run the WMIC command
+            process = subprocess.Popen(['wmic', 'computersystem', 'list', 'full'], 
+                                     stdout=subprocess.PIPE, 
+                                     stderr=subprocess.PIPE,
+                                     startupinfo=startupinfo,
+                                     shell=False)
+            
+            stdout_bytes, stderr_bytes = process.communicate()
+            
+            if process.returncode != 0:
+                print(f"{ERROR} {{ComputerSystem}}: WMIC command failed with return code {process.returncode}")
+                return None
+                
+            # Try various encodings to decode the output
+            encodings_to_try = ['utf-8', 'cp437', 'latin-1']
+            output_decoded = None
+            
+            for enc in encodings_to_try:
+                try:
+                    output_decoded = stdout_bytes.decode(enc)
+                    break
+                except UnicodeDecodeError:
+                    continue
+                    
+            if not output_decoded:
+                print(f"{ERROR} {{ComputerSystem}}: Could not decode WMIC output")
+                return None
+                
+            # Parse the output into an array of properties
+            properties = []
+            lines = output_decoded.strip().split('\n')
+            
+            for line in lines:
+                # Skip empty lines and CLASS line
+                if not line.strip() or line.strip().startswith('CLASS'):
+                    continue
+                    
+                # Extract property=value pairs
+                if '=' in line:
+                    property_name, value = line.strip().split('=', 1)
+                    properties.append((property_name.strip(), value.strip()))
+            
+            # Store the properties array and its length
+            self.__computersystem_properties = properties
+            self.__computersystem_length = len(properties)
+            
+            return self.__computersystem_length
+            
+        except FileNotFoundError:
+            print(f"{ERROR} {{ComputerSystem}}: WMIC command not found. Ensure it is in the system PATH.")
+            return None
+        except Exception as e:
+            print(f"{ERROR} {{ComputerSystem}}: Unexpected error: {e}")
             return None
