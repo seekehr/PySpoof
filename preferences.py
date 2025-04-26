@@ -10,5 +10,5 @@ class Preferences:
             converted_value = qType(x)  # Convert input to the expected type
             return converted_value
         except ValueError:
-            print(f"Invalid input. Could not convert to {qType.__name__}. Try again.")
+            log(f"Invalid input. Could not convert to {qType.__name__}. Try again.")
             return self.ask(question, qType)

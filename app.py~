@@ -3,8 +3,8 @@ import ctypes
 import os
 import platform
 import re
+from asyncio import gather
 from datetime import datetime
-
 from systeminformation import SystemInformation
 import winreg
 import wmi
@@ -12,16 +12,17 @@ import time
 from colorama import Fore, Back, Style
 from colorama import init
 from config import Config
-from utils.ERROR import ERROR
 import argparse
-
+from utils.formats import ERROR, SUCCESS, WARNING
+from utils.logger import Logger
+import atexit
 init(autoreset=True)
 
 def is_admin():
     try:
         return ctypes.windll.shell32.IsUserAnAdmin()
     except Exception as e:
-        print(f"{ERROR} while loading: {e}")
+        logger.error(f"{ERROR} while loading: {e}", e)
         exit(1)
 
 os.makedirs("logs", exist_ok=True)
@@ -29,55 +30,93 @@ os.makedirs("logs", exist_ok=True)
 start_time = time.time()
 """
 if not is_admin():
-    print("Please run this script as an administrator.")
+    log("Please run this script as an administrator.")
     exit(1)
 """
-config = Config()
+logger = Logger(os.path.join("logs", "system_logs.txt"))
+config = Config(logger)
 output = False
-def handle_args():
+
+
+def handle_args(conf, log):
     parser = argparse.ArgumentParser(description="Process some flags.")
-    parser.add_argument('--o', dest="output", type=str, help="Specify output file path")
+    parser.add_argument('--o', action='store_true', help="Enable saving output to the default file (output.txt)")
+    parser.add_argument('--spoof', action='store_true', help="Run in spoofer mode")
     args = parser.parse_args()
-    if args.output:
-        print(f"Output file: {args.output}")
+
+    default_output_filename = "resources/output.txt"
+
+    if args.o:
+        conf.set("output", default_output_filename)
+        log.inform(f"Output saving enabled by --o flag. Output will be saved to: {default_output_filename}")
+    else:
+        current_config_output = conf.get("output")
+        if isinstance(current_config_output, str) and current_config_output.lower().endswith(".txt"):
+            log.inform(f"Output saving enabled by config. Using output file: {current_config_output}")
+        else:
+            conf.set("output", None)
+            log.inform("Output saving disabled (no --o flag and no valid config output file).")
+
+    args.output_path = conf.get("output")
+
     return args
 
-def saveOutput(sys_info: SystemInformation, output_file=None):
-    if output_file:
-        _parse_output(output_file, sys_info)
-    elif config.get("output"):
-        outputFile = config.get("output")
-        if isinstance(outputFile, str) and outputFile.endswith(".txt"):
-            _parse_output(outputFile, sys_info)
-
-def _parse_output(output_file, info):
-    str = "Time: " +  datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "\n\n"
-    str += info.print()
-    plain_text_output = _remove_ansi_escape_sequences(str)
-    with open("./logs/" + output_file, "w") as f:
-        f.write(plain_text_output)
-    print(f"Output file: {output_file}")
-
-def _remove_ansi_escape_sequences(text):
-    # Regular expression to remove ANSI escape sequences (color codes)
-    ansi_escape = re.compile(r'\x1b\[[0-9;]*m')
-    return ansi_escape.sub('', text)
-
-async def main():
-    try:
-        args = handle_args()
-        sys_info = SystemInformation()
-        print("Starting to load system information asynchronously...\n")
-        await sys_info.load_system_info_async()
-        sys_info.print()
-        print("\nFinished loading. Time:", time.time() - start_time)
-        saveOutput(sys_info, args.output)
-    except Exception as e:
-        print(f"{ERROR}: {e}")
+async def spoof(args, sys_info: SystemInformation):
+    if args.spoof:
+        logger.inform("Spoofing...")
+        from spoofer import Spoofer
+        spoofer = Spoofer(sys_info)
+        await start_interactive_cli(spoofer)
         exit(1)
 
+# ==== Main ==== (bro im so sweepy) #
+async def main():
+    try:
+        args = handle_args(config, logger)
+        sys_info = SystemInformation(logger)
+        logger.inform("Starting to load system information asynchronously...\n")
+        await sys_info.load_system_info_async()
+        sys_info.log()
+        logger.log("\nFinished loading. Time:", time.time() - start_time)
+        if args.o:
+            config.save()
+        if args.spoof:
+            await spoof(args, sys_info)
+
+    except Exception as e:
+        logger.inform(f"{ERROR}: {e}")
+        exit(1)
+
+# ==== Spoofer =====
+async def start_interactive_cli(spoofer): # Assuming spoofer object has methods create_registry_backup and spoof_mac
+    backup = False
+    while True:
+        command = input(f"{Fore.CYAN}Spoofing CLI> {Style.RESET_ALL}").lower() # Get input and convert to lowercase
+        match command:
+            case "exit":
+                logger.inform(f"{SUCCESS}Exiting spoofing mode...{Style.RESET_ALL}")
+                break # Exit the loop
+            case "help":
+                logger.log("Available commands:")
+                logger.log(" mac - Start the MAC address spoofing")
+                logger.log(" exit    - Exit the spoofing mode")
+            case "mac":
+                if not backup:
+                    logger.warn(f"{WARNING} Backup not created! Run 'backup' command first.")
+                    continue
+                logger.inform(f"{Fore.YELLOW}Spoofing MAC address...{Style.RESET_ALL}")
+                await spoofer.spoof_mac() # Assuming spoof_mac might be async
+            case "backup":
+                spoofer.create_registry_backup();
+                backup = True
+            case _: # Wildcard case for any other input
+                logger.error(f"{ERROR} Unknown command: {command}")
+
+def cleanup_function():
+    asyncio.gather(logger.save(), config.save(), return_exceptions=True)
+
+# Register the cleanup function
+atexit.register(cleanup_function)
+
 if __name__ == "__main__":
-    # On Windows, ProactorEventLoop is the default for asyncio,
-    # which works well with the ThreadPoolExecutor used here.
-    # For other platforms, the default event loop should also be fine.
     asyncio.run(main())

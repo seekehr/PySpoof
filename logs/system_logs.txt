@@ -1,0 +1,4 @@
+[34m[INFO][0mOutput saving enabled by --o flag. Output will be saved to: resources/output.txt
+[34m[INFO][0mStarting to load system information asynchronously...
+
+[34m[INFO][0m[31m[ERROR] [0m: Logger.log() takes 2 positional arguments but 3 were given

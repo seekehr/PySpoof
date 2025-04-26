@@ -12,13 +12,14 @@ import requests
 from colorama import Fore, Back, Style
 import asyncio
 import concurrent.futures
-from utils.ERROR import ERROR
+from utils.formats import ERROR
 import machineid
 import re
+from utils.logger import Logger
 
 # Comments powered by AI
 class SystemInformation:
-    def __init__(self):
+    def __init__(self, logger: Logger):
         # PC hardware identifiers
         self.__hostname = None
         self.__mac = None
@@ -50,7 +51,8 @@ class SystemInformation:
         self.__computersystem_length = None
         
         # Status flag
-        self._loaded = False
+        self._loafded = False
+        self.logger = logger
 
     async def load_system_info_async(self):
         """Load all system information asynchronously"""
@@ -95,7 +97,7 @@ class SystemInformation:
             result = results[i]
             if isinstance(result, Exception):
                 # Task failed with exception
-                print(f"{ERROR} Task '{key}' failed: {result}")
+                self.logger.error(f"{ERROR} Task '{key}' failed: {result}")
                 # Handle special cases
                 if key == 'wlan_info':
                     self.__wlan_guid = None
@@ -126,50 +128,61 @@ class SystemInformation:
         # Mark as loaded when complete
         self._loaded = True
 
-    def print(self):
-        """Print all system information in a formatted way"""
+    def get(self):
         output_str = ""
         try:
             # PC Section
             output_str += Fore.YELLOW + "==============" + Fore.LIGHTMAGENTA_EX + "PC" + Fore.YELLOW + "==============" + Fore.RESET + "\n"
             output_str += Fore.GREEN + "Hostname: " + Fore.RESET + (self.hostname or "Invalid Hostname") + "\n"
-            output_str += Fore.GREEN + "Processor ID: " + Fore.RESET + (self.processor_id or "Invalid Processor ID") + "\n"
+            output_str += Fore.GREEN + "Processor ID: " + Fore.RESET + (
+                        self.processor_id or "Invalid Processor ID") + "\n"
             output_str += Fore.GREEN + "UUID: " + Fore.RESET + (self.uuid or "Invalid UUID") + "\n"
-            output_str += Fore.GREEN + "Motherboard: " + Fore.RESET + (self.motherboard or "Invalid Motherboard number") + "\n"
+            output_str += Fore.GREEN + "Motherboard: " + Fore.RESET + (
+                        self.motherboard or "Invalid Motherboard number") + "\n"
             output_str += Fore.GREEN + "BIOS: " + Fore.RESET + (self.bios or "Invalid BIOS number") + "\n"
-            output_str += Fore.GREEN + "Machine GUID: " + Fore.RESET + (self.machine_guid or "Invalid Machine GUID") + "\n"
-            output_str += Fore.GREEN + "ComputerSystem Properties Count: " + Fore.RESET + (str(self.computersystem_length) or "N/A") + "\n"
+            output_str += Fore.GREEN + "Machine GUID: " + Fore.RESET + (
+                        self.machine_guid or "Invalid Machine GUID") + "\n"
+            output_str += Fore.GREEN + "ComputerSystem Properties Count: " + Fore.RESET + (
+                        str(self.computersystem_length) or "N/A") + "\n"
 
             output_str += Fore.YELLOW + "==============" + Fore.LIGHTMAGENTA_EX + "PC" + Fore.YELLOW + "==============" + Fore.RESET + "\n"
             if self.installdate:
                 try:
                     timeStampToDate = datetime.datetime.strptime(self.installdate, '%Y%m%d%H%M%S')
-                    output_str += Fore.GREEN + "Windows installed: " + Fore.RESET + str(timeStampToDate) + " || " + self.installdate + "\n"
+                    output_str += Fore.GREEN + "Windows installed: " + Fore.RESET + str(
+                        timeStampToDate) + " || " + self.installdate + "\n"
                 except ValueError:
                     output_str += Fore.GREEN + "Windows installed: " + Fore.RESET + f"Invalid Date Format ({self.installdate})" + "\n"
             else:
                 output_str += Fore.GREEN + "Windows installed: " + Fore.RESET + "Invalid Install Date" + "\n"
             output_str += Fore.GREEN + "OS Serial: " + Fore.RESET + (self.osserial or "Invalid OS Serial") + "\n"
             output_str += Fore.GREEN + "User SID: " + Fore.RESET + (self.user_sid or "Invalid User SID") + "\n"
-            
+
             # Network Section
             output_str += Fore.YELLOW + "==============" + Fore.LIGHTMAGENTA_EX + "NET" + Fore.YELLOW + "==============" + Fore.RESET + "\n"
             output_str += Fore.GREEN + "General MAC: " + Fore.RESET + (self.mac or "Invalid MAC") + "\n"
             output_str += Fore.GREEN + "Local IP: " + Fore.RESET + (self.local_ip or "Invalid Local IP") + "\n"
             output_str += Fore.GREEN + "Public IP: " + Fore.RESET + (self.public_ip or "Invalid Public IP") + "\n"
             output_str += Fore.GREEN + "WLAN GUID: " + Fore.RESET + (self.wlan_guid or "N/A or Not Found") + "\n"
-            output_str += Fore.GREEN + "WLAN Phys Addr: " + Fore.RESET + (self.wlan_physical_address or "N/A or Not Found") + "\n"
+            output_str += Fore.GREEN + "WLAN Phys Addr: " + Fore.RESET + (
+                        self.wlan_physical_address or "N/A or Not Found") + "\n"
             output_str += Fore.GREEN + "WLAN BSSID: " + Fore.RESET + (self.wlan_bssid or "N/A or Not Connected") + "\n"
-            
+
             # Disk Section
             output_str += Fore.YELLOW + "==============" + Fore.LIGHTMAGENTA_EX + "DISK" + Fore.YELLOW + "==============" + Fore.RESET + "\n"
             output_str += Fore.GREEN + "Disk Serial: " + Fore.RESET + (self.disk_serial or "Invalid Serial") + "\n"
-            output_str += Fore.GREEN + "Volume Serial: " + Fore.RESET + (self.volume_serial or "Invalid Volume Serial") + "\n"
+            output_str += Fore.GREEN + "Volume Serial: " + Fore.RESET + (
+                        self.volume_serial or "Invalid Volume Serial") + "\n"
             output_str += Fore.GREEN + "Disk Model: " + Fore.RESET + (self.disk_model or "Invalid Disk Model") + "\n"
 
         except Exception as e:
-            output_str += f"{ERROR} Could not print. Error: {e}" + "\n"
-        
+            output_str += f"{ERROR} Could not self.logger.error. Error: {e}" + "\n"
+
+        return output_str
+
+    def log(self):
+        """self.logger.error all system information in a formatted way"""
+        output_str = self.get()
         print(output_str, end="")
         return output_str
 
@@ -274,10 +287,10 @@ class SystemInformation:
                 mac = ':'.join(mac_pairs)  # Use colon as standard separator
                 return mac
             else:
-                print(f"{ERROR} {{MAC}}: Processed hex value '{mac_num}' has unexpected length {len(mac_num)}.")
+                self.self.logger.errorger.error(f"{ERROR} {{MAC}}: Processed hex value '{mac_num}' has unexpected length {len(mac_num)}.")
                 return None
         except Exception as e:
-            print(f"{ERROR} {{MAC}}: {e}")
+            self.self.logger.errorger.error(f"{ERROR} {{MAC}}: {e}")
             return None
 
     def _motherboard(self):
@@ -289,7 +302,7 @@ class SystemInformation:
                 return board.SerialNumber.strip()
             return None  # No board found
         except Exception as e:
-            print(f"{ERROR} {{Motherboard}}: {e}")
+            self.self.logger.errorger.error(f"{ERROR} {{Motherboard}}: {e}")
             return None
 
     def _bios(self):
@@ -301,7 +314,7 @@ class SystemInformation:
                 return bios.SerialNumber.strip()
             return None  # No BIOS information found
         except Exception as e:
-            print(f"{ERROR} {{BIOS}}: {e}")
+            self.self.logger.errorger.error(f"{ERROR} {{BIOS}}: {e}")
             return None
 
     def _disk_serial(self):
@@ -313,7 +326,7 @@ class SystemInformation:
                 return disk.SerialNumber.strip()
             return None  # No disk found
         except Exception as e:
-            print(f"{ERROR} {{Disk Serial}}: {e}")
+            self.self.logger.errorger.error(f"{ERROR} {{Disk Serial}}: {e}")
             return None
 
     def _machine_guid(self):
@@ -332,7 +345,7 @@ class SystemInformation:
                 value, _ = winreg.QueryValueEx(registry_key, value_name)
                 return value
         except Exception as e:
-            print(f"{ERROR} {{Machine GUID}}: {e}")
+            self.self.logger.errorger.error(f"{ERROR} {{Machine GUID}}: {e}")
             return None
 
     def _uuid(self):
@@ -344,7 +357,7 @@ class SystemInformation:
                 return csproduct.UUID
             return None  # No UUID found
         except Exception as e:
-            print(f"{ERROR} {{UUID}}: {e}")
+            self.self.logger.errorger.error(f"{ERROR} {{UUID}}: {e}")
             return None
 
     def _local_ip(self):
@@ -357,7 +370,7 @@ class SystemInformation:
             s.close()
             return ip
         except Exception as e:
-            print(f"{ERROR} {{Local IP}}: {e}")
+            self.self.logger.errorger.error(f"{ERROR} {{Local IP}}: {e}")
             return None
 
     def _public_ip(self):
@@ -380,7 +393,7 @@ class SystemInformation:
 
             return None  # All services failed
         except Exception as e:
-            print(f"{ERROR} {{Public IP}}: {e}")
+            self.self.logger.errorger.error(f"{ERROR} {{Public IP}}: {e}")
             return None
 
     def _install_date(self):
@@ -402,7 +415,7 @@ class SystemInformation:
                 install_date = datetime.datetime.fromtimestamp(install_date_timestamp)
                 return install_date.strftime("%Y%m%d%H%M%S")
         except Exception as e:
-            print(f"{ERROR} {{Install Date}}: {e}")
+            self.self.logger.errorger.error(f"{ERROR} {{Install Date}}: {e}")
             return None
 
     def _hostname(self):
@@ -410,7 +423,7 @@ class SystemInformation:
         try:
             return socket.gethostname()
         except Exception as e:
-            print(f"{ERROR} {{Hostname}}: {e}")
+            self.logger.error(f"{ERROR} {{Hostname}}: {e}")
             return None
 
     def _os_serial(self):
@@ -435,7 +448,7 @@ class SystemInformation:
                         continue
                 return None  # No valid value found
         except Exception as e:
-            print(f"{ERROR} {{OS Serial}}: {e}")
+            self.self.logger.errorger.error(f"{ERROR} {{OS Serial}}: {e}")
             return None
 
     def _volumeserial(self):
@@ -461,7 +474,7 @@ class SystemInformation:
             )
             return str(serial_number.value)
         except Exception as e:
-            print(f"{ERROR} {{Volume Serial}}: {e}")
+            self.self.logger.errorger.error(f"{ERROR} {{Volume Serial}}: {e}")
             return None
 
     def _processor_id(self):
@@ -473,7 +486,7 @@ class SystemInformation:
                 return processor.ProcessorId.strip()
             return None  # No processor found
         except Exception as e:
-            print(f"{ERROR} {{Processor ID}}: {e}")
+            self.self.logger.errorger.error(f"{ERROR} {{Processor ID}}: {e}")
             return None
 
     def _disk_model(self):
@@ -485,7 +498,7 @@ class SystemInformation:
                 return disk.Model.strip()
             return None  # No disk found
         except Exception as e:
-            print(f"{ERROR} {{Disk Model}}: {e}")
+            self.self.logger.errorger.error(f"{ERROR} {{Disk Model}}: {e}")
             return None
 
     def _user_sid(self):
@@ -525,7 +538,7 @@ class SystemInformation:
                 if not stderr_decoded:
                     error_message += " (Could not decode stderr)."
                     
-                print(f"{ERROR} {{User SID}}: {error_message}")
+                self.logger.error(f"{ERROR} {{User SID}}: {error_message}")
                 return None
 
             # Try to decode stdout with various encodings
@@ -538,7 +551,7 @@ class SystemInformation:
                     continue
 
             if output is None:
-                print(f"{ERROR} {{User SID}}: Could not decode 'whoami /user' output with tried encodings.")
+                self.logger.error(f"{ERROR} {{User SID}}: Could not decode 'whoami /user' output with tried encodings.")
                 return None
 
             # Use regex to find the SID (S-1 followed by digits and hyphens)
@@ -547,15 +560,15 @@ class SystemInformation:
             if match:
                 return match.group(1)  # Return the captured SID
             else:
-                # Log the actual output if parsing fails
-                print(f"{ERROR} {{User SID}}: Could not parse SID from 'whoami /user' output:\n---\n{output}\n---")
+                # self.logger.error the actual output if parsing fails
+                self.logger.error(f"{ERROR} {{User SID}}: Could not parse SID from 'whoami /user' output:\n---\n{output}\n---")
                 return None
 
         except FileNotFoundError:
-            print(f"{ERROR} {{User SID}}: 'whoami' command not found. Ensure it is in the system PATH.")
+            self.logger.error(f"{ERROR} {{User SID}}: 'whoami' command not found. Ensure it is in the system PATH.")
             return None
         except Exception as e:
-            print(f"{ERROR} {{User SID}}: Unexpected error: {e}")
+            self.logger.error(f"{ERROR} {{User SID}}: Unexpected error: {e}")
             return None
 
     def _wlan_info(self):
@@ -566,7 +579,7 @@ class SystemInformation:
             'physical_address': None,
             'bssid': None
         }
-        log_info = []
+        self.logger.error_info = []
 
         try:
             # Set up subprocess to hide console window
@@ -598,7 +611,7 @@ class SystemInformation:
                     except UnicodeDecodeError:
                         continue
                         
-                print(f"{ERROR} {{WLAN Info}}: 'netsh wlan show interfaces' failed. Code: {process.returncode}. Stderr: {stderr_decoded or '(undecodable)'}")
+                self.logger.error(f"{ERROR} {{WLAN Info}}: 'netsh wlan show interfaces' failed. Code: {process.returncode}. Stderr: {stderr_decoded or '(undecodable)'}")
                 return wlan_info
 
             # Try to decode stdout with various encodings
@@ -610,7 +623,7 @@ class SystemInformation:
                     continue
 
             if not output_decoded:
-                print(f"{ERROR} {{WLAN Info}}: Could not decode 'netsh' output.")
+                self.logger.error(f"{ERROR} {{WLAN Info}}: Could not decode 'netsh' output.")
                 return wlan_info
             
             # Use regex to extract WLAN interface information
@@ -623,32 +636,32 @@ class SystemInformation:
             if guid_match:
                 wlan_info['guid'] = guid_match.group(1)
             else:
-                log_info.append("Could not find WLAN GUID.")
+                self.logger.error_info.append("Could not find WLAN GUID.")
 
             if pa_match:
                 # Normalize MAC to use consistent format
                 wlan_info['physical_address'] = pa_match.group(1).replace(':', '-').upper()
             else:
-                log_info.append("Could not find WLAN Physical Address.")
+                self.logger.error_info.append("Could not find WLAN Physical Address.")
 
             if bssid_match:
                 # Normalize BSSID to use consistent format
                 wlan_info['bssid'] = bssid_match.group(1).replace(':', '-').upper()
             else:
                 # BSSID is often missing if not connected
-                log_info.append("Could not find WLAN BSSID (likely not connected).")
+                self.logger.error_info.append("Could not find WLAN BSSID (likely not connected).")
 
-            # Log any missing information
-            if log_info:
-                print(f"[INFO] {{WLAN Info}}: {', '.join(log_info)}")
+            # self.logger.error any missing information
+            if self.logger.error_info:
+                self.logger.error(f"[INFO] {{WLAN Info}}: {', '.join(self.logger.error_info)}")
 
             return wlan_info
 
         except FileNotFoundError:
-            print(f"{ERROR} {{WLAN Info}}: 'netsh' command not found. Ensure it is in the system PATH.")
+            self.logger.error(f"{ERROR} {{WLAN Info}}: 'netsh' command not found. Ensure it is in the system PATH.")
             return wlan_info
         except Exception as e:
-            print(f"{ERROR} {{WLAN Info}}: Unexpected error: {e}")
+            self.logger.error(f"{ERROR} {{WLAN Info}}: Unexpected error: {e}")
             return wlan_info
 
     def _computersystem_info(self):
@@ -671,7 +684,7 @@ class SystemInformation:
             
             # Check for command failure
             if process.returncode != 0:
-                print(f"{ERROR} {{ComputerSystem}}: WMIC command failed with return code {process.returncode}")
+                self.logger.error(f"{ERROR} {{ComputerSystem}}: WMIC command failed with return code {process.returncode}")
                 return None
                 
             # Try various encodings to decode the output
@@ -686,7 +699,7 @@ class SystemInformation:
                     continue
                     
             if not output_decoded:
-                print(f"{ERROR} {{ComputerSystem}}: Could not decode WMIC output")
+                self.logger.error(f"{ERROR} {{ComputerSystem}}: Could not decode WMIC output")
                 return None
                 
             # Parse the output into an array of properties
@@ -710,8 +723,8 @@ class SystemInformation:
             return self.__computersystem_length
             
         except FileNotFoundError:
-            print(f"{ERROR} {{ComputerSystem}}: WMIC command not found. Ensure it is in the system PATH.")
+            self.logger.error(f"{ERROR} {{ComputerSystem}}: WMIC command not found. Ensure it is in the system PATH.")
             return None
         except Exception as e:
-            print(f"{ERROR} {{ComputerSystem}}: Unexpected error: {e}")
+            self.logger.error(f"{ERROR} {{ComputerSystem}}: Unexpected error: {e}")
             return None

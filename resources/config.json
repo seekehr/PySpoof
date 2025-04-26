@@ -1,3 +1,7 @@
 {
-  "output": "output.txt"
+    "output": "resources/output.txt",
+    "uwu": "hi",
+    "a": {
+        "b": "c"
+    }
 }

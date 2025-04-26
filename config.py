@@ -2,6 +2,7 @@ import json
 import os
 from threading import Lock
 from typing import TypeVar, Generic
+from utils.logger import Logger
 
 V = TypeVar('V')
 
@@ -10,7 +11,7 @@ class Config:
     _lock = Lock()  # Protect against race conditions
     _config_data = None
 
-    def __new__(cls, path='./resources/config.json'):
+    def __new__(cls, logger: Logger, path='./resources/config.json'):
         with cls._lock:  # Ensure thread-safety during instance creation
             if cls._instance is None:
                 cls._instance = super(Config, cls).__new__(cls)
@@ -18,11 +19,21 @@ class Config:
                 cls._instance._path = path  # Store the path of the config file
         return cls._instance
 
+    def __init__(self, logger: Logger, path='./resources/config.json'):
+        self._config_data = self._load_config(path)
+        self._path = path
+        self._logger = logger
+
     def _load_config(self, path):
         if not os.path.exists(path):
             raise FileNotFoundError(f"Config file not found: {path}")
         with open(path, 'r') as file:
-            return json.load(file)
+            parsedData = json.load(file)
+            if not isinstance(parsedData, dict): # if config is somehow corrupted and completely empty
+                parsedData = {"output": "none"}
+            elif not parsedData.get("output"):
+                parsedData["output"] = "none"
+            return parsedData
 
     def save(self):
         with self._lock:
@@ -30,10 +41,13 @@ class Config:
                 raise ValueError("Config data is empty, nothing to save.")
             with open(self._path, 'w') as file:
                 json.dump(self._config_data, file, indent=4)
-                print(f"Config saved to {self._path}")
+                self._logger.success(f"Config saved to {self._path}")
 
     def get(self, key: str) -> V:
         return self._config_data.get(key, None)
+
+    def has(self, key: str) -> bool:
+        return key in self._config_data
 
     def getData(self):
         return self._config_data
