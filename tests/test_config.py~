@@ -25,9 +25,9 @@ def test_nested():
 def test_save():
     data = config.getData()
     config.save()
-    newConfig = Config(logger, "./tests/test_config.json")
+    newConfig = Config(logger, "resources/tests/test_config.json")
     assert newConfig.getData() == data
 
 def test_instance():
-    config2 = Config(logger, "./tests/test_config.json")
+    config2 = Config(logger, "resources/tests/test_config.json")
     assert id(config2.getData()) == id(config.getData())

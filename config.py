@@ -17,6 +17,7 @@ class Config:
                 cls._instance = super(Config, cls).__new__(cls)
                 cls._instance._config_data = cls._instance._load_config(path)
                 cls._instance._path = path  # Store the path of the config file
+                cls._instance._logger = logger
         return cls._instance
 
     def __init__(self, logger: Logger, path='./resources/config.json'):

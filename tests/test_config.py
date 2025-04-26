@@ -19,7 +19,6 @@ def test_set():
 
 def test_nested():
     config.setNested("c", "a", "b")
-    logger.log(config._config_data)
     assert config.getNested("a") == {"b": "c"}
 
 def test_save():

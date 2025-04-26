@@ -1,5 +1,7 @@
 import inspect
 import threading
+from types import TracebackType
+from typing import Type
 
 from utils.formats import *
 
@@ -42,17 +44,35 @@ class Logger:
             self._logs.append("[INFO]: " + message)
         print(INFO + message)
 
-    def warn(self, message: str, err: Exception = None):
-        log_message = "[WARNING]: " + message + f".. Exception:" + str(err)
-        with self._lock:
-            self._logs.append(log_message)
-        print(WARNING + message + f"... {Fore.RESET} Exception:" + str(err))
+    def warn(self, message: str,
+              err: tuple[Type[BaseException], BaseException, TracebackType] | tuple[None, None, None] | None = None):
+        log_message = "[WARN]: " + message
+        exc_type, exc_obj, tb = err
+        line_number = tb.tb_lineno
+        file_name = tb.tb_frame.f_code.co_filename
 
-    def error(self, message: str, err: Exception = None):
-        log_message = "[ERROR]: " + message + f".. Exception:" + str(err)
+        if isinstance(err,
+                      Exception): log_message += f".. Exception: {str(exc_obj)} at line {line_number} in {file_name}"
         with self._lock:
             self._logs.append(log_message)
-        print(ERROR + message + f"... {Fore.RESET} Exception:" + str(err))
+        string = WARNING + message + f"... {Fore.RESET}"
+        if err:
+            string += f"Exception: {str(err)}"
+        print(str)
+
+    def error(self, message: str, err:  tuple[Type[BaseException], BaseException, TracebackType] | tuple[None, None, None]|None = None):
+        log_message = "[ERROR]: " + message
+        exc_type, exc_obj, tb = err
+        line_number = tb.tb_lineno
+        file_name = tb.tb_frame.f_code.co_filename
+
+        if isinstance(err, Exception): log_message += f".. Exception: {str(exc_obj)} at line {line_number} in {file_name}"
+        with self._lock:
+            self._logs.append(log_message)
+        string = ERROR + message + f"... {Fore.RESET}"
+        if err:
+            string += f"Exception: {str(err)}"
+        print(str)
 
     def success(self, message: str):
         with self._lock:

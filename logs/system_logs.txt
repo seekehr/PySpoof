@@ -1,4 +1,8 @@
-[34m[INFO][0mOutput saving enabled by --o flag. Output will be saved to: resources/output.txt
-[34m[INFO][0mStarting to load system information asynchronously...
+[INFO]: Output saving enabled by --o flag. Output will be saved to: resources/output.txt
+[INFO]: Starting to load system information asynchronously...
 
-[34m[INFO][0m[31m[ERROR] [0m: Logger.log() takes 2 positional arguments but 3 were given
+
+Finished loading. Time: 1.1141226291656494 seconds
+[SUCCESS]: Config saved to ./resources/config.json
+[INFO]: Spoofing...
+[INFO]: [31m[ERROR] [0m: cannot unpack non-iterable NoneType object

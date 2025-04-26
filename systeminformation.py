@@ -1,4 +1,5 @@
 import json
+import sys
 import uuid
 from tokenize import Number
 from winreg import HKEYType
@@ -302,7 +303,7 @@ class SystemInformation:
                 return board.SerialNumber.strip()
             return None  # No board found
         except Exception as e:
-            self.self.logger.errorger.error(f"{ERROR} {{Motherboard}}: {e}")
+            self.self.logger.errorger.error(f"{ERROR} {{Motherboard}}: {e}", sys.exc_info())
             return None
 
     def _bios(self):
@@ -345,7 +346,7 @@ class SystemInformation:
                 value, _ = winreg.QueryValueEx(registry_key, value_name)
                 return value
         except Exception as e:
-            self.self.logger.errorger.error(f"{ERROR} {{Machine GUID}}: {e}")
+            self.logger.error(f"{ERROR} {{Machine GUID}}: {sys.exc_info()}")
             return None
 
     def _uuid(self):

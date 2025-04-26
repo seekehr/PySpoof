@@ -3,6 +3,7 @@ import ctypes
 import os
 import platform
 import re
+import sys
 from asyncio import gather
 from datetime import datetime
 from systeminformation import SystemInformation
@@ -16,13 +17,14 @@ import argparse
 from utils.formats import ERROR, SUCCESS, WARNING
 from utils.logger import Logger
 import atexit
+from spoofer import Spoofer
 init(autoreset=True)
 
 def is_admin():
     try:
         return ctypes.windll.shell32.IsUserAnAdmin()
     except Exception as e:
-        logger.error(f"{ERROR} while loading: {e}", e)
+        logger.error(f"{ERROR} while loading: {e}", sys.exc_info())
         exit(1)
 
 os.makedirs("logs", exist_ok=True)
@@ -43,7 +45,7 @@ def handle_args(conf, log):
     parser.add_argument('--o', action='store_true', help="Enable saving output to the default file (output.txt)")
     parser.add_argument('--spoof', action='store_true', help="Run in spoofer mode")
     args = parser.parse_args()
-
+    print(f"{args}")
     default_output_filename = "resources/output.txt"
 
     if args.o:
@@ -64,7 +66,6 @@ def handle_args(conf, log):
 async def spoofHandleArgs(args, sys_info: SystemInformation):
     if args.spoof:
         logger.inform("Spoofing...")
-        from spoofer import Spoofer
         spoofer = Spoofer(sys_info, logger)
         await start_interactive_cli(spoofer)
         exit(1)
@@ -77,7 +78,7 @@ async def main():
         logger.inform("Starting to load system information asynchronously...\n")
         await sys_info.load_system_info_async()
         sys_info.log()
-        logger.log("\nFinished loading. Time:", time.time() - start_time)
+        logger.log("\nFinished loading. Time: " + str(time.time() - start_time) + " seconds")
         if args.o:
             config.save()
         if args.spoof:

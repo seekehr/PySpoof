@@ -1,3 +1,5 @@
+import sys
+
 from utils.generator import generate_random_values
 from utils.formats import *
 import subprocess
@@ -8,7 +10,7 @@ from utils.logger import Logger
 class Spoofer:
     def __init__(self, sys_info: SystemInformation, logger: Logger):
         self._sys_info = sys_info
-        self._logger = Logger
+        self._logger = logger
         self._random_values = generate_random_values()
 
     def create_registry_backup(self):
@@ -40,7 +42,16 @@ class Spoofer:
             self._logger.success(f"Registry backup created at {backup_path}")
             return True
         except Exception as e:
-            self._logger.error(f"Failed to create registry backup: {e}")
+            exc_type, exc_obj, tb = sys.exc_info()
+
+            # The traceback object 'tb' contains information about the error location
+            # tb.tb_lineno gives the line number where the exception occurred
+            line_number = tb.tb_lineno
+
+            # We can also get the filename if needed
+            file_name = tb.tb_frame.f_code.co_filename
+            print(f"An error occurred in {file_name}, line {line_number}: {str(e)}")
+            self._logger.error(f"Failed to create registry backup.", sys.exc_info())
             return False
 
     def spoof_mac(self):
@@ -68,4 +79,4 @@ class Spoofer:
            subprocess.call(f'powershell Disable-NetAdapter -Name "{interface}" -Confirm:$false', shell=True)
            subprocess.call(f'powershell Enable-NetAdapter -Name "{interface}"', shell=True)
         except Exception as e:
-            self._logger.error(f"Failed to spoof MAC address: {e}")
+            self._logger.error(f"Failed to spoof MAC address", sys.exc_info())

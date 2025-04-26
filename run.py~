@@ -1,0 +1,122 @@
+import subprocess
+import sys
+import os
+import argparse # Import the argparse module
+
+# --- Configuration ---
+# Set the correct path to your run.bat file
+# You can use an absolute path like r"C:\Users\YourUser\YourProject\run.bat"
+# Or a relative path if the script is in the same directory or a known location
+# Example: If run.bat is in the same directory as this Python script:
+batch_file_path = "run.bat"
+
+# --- Argument Parsing ---
+# Create an argument parser
+parser = argparse.ArgumentParser(description="Run a batch file with optional flags.")
+
+# Add the --o argument
+parser.add_argument(
+    '--o',
+    action='store_true', # Store True if the flag is present, False otherwise
+    help="Placeholder argument --o (does not currently affect batch file execution)"
+)
+
+# Add the --spoof argument
+parser.add_argument(
+    '--spoof',
+    action='store_true', # Store True if the flag is present, False otherwise
+    help="Placeholder argument --spoof (does not currently affect batch file execution)"
+)
+
+# Parse the command-line arguments
+args = parser.parse_args()
+
+# --- Execution ---
+def run_batch_script(script_path: str):
+    """
+    Runs a given batch script using subprocess.
+
+    Args:
+        script_path: The full or relative path to the batch file (.bat).
+
+    Returns:
+        True if the script ran successfully (exit code 0), False otherwise.
+    """
+    print(f"Attempting to run batch script: {script_path}")
+
+    # Check if the batch file exists
+    if not os.path.exists(script_path):
+        print(f"Error: Batch file not found at {script_path}", file=sys.stderr)
+        return False
+
+    try:
+        # Use subprocess.run to execute the batch file
+        # shell=True is often necessary for running .bat files directly
+        # capture_output=True captures stdout and stderr
+        # text=True decodes stdout and stderr as text using default encoding
+        # check=True will raise CalledProcessError if the command returns a non-zero exit code
+        result = subprocess.run(
+            [script_path], # Pass the script path as a list
+            shell=True,
+            capture_output=True,
+            text=True,
+            check=True # This will raise an exception on non-zero exit code
+        )
+
+        # If check=True didn't raise an exception, the script ran successfully
+        print("Batch script executed successfully.")
+
+        # Print standard output if any
+        if result.stdout:
+            print("\n--- Standard Output ---")
+            print(result.stdout)
+
+        return True
+
+    except FileNotFoundError:
+        # This specific error might occur if 'cmd.exe' (the shell) is not found,
+        # which is very unlikely on Windows, or if the script_path itself is invalid
+        print(f"Error: The command or batch file was not found. Check path: {script_path}", file=sys.stderr)
+        return False
+    except subprocess.CalledProcessError as e:
+        # This exception is raised because check=True is set, and the batch file
+        # exited with a non-zero status (indicating an error within the batch script)
+        print(f"Error: Batch script failed with exit code {e.returncode}", file=sys.stderr)
+        print(f"Command: {e.cmd}", file=sys.stderr)
+
+        # Print standard output and error from the failed process
+        if e.stdout:
+            print("\n--- Standard Output (from error) ---", file=sys.stderr)
+            print(e.stdout, file=sys.stderr)
+        if e.stderr:
+            print("\n--- Standard Error (from error) ---", file=sys.stderr)
+            print(e.stderr, file=sys.stderr)
+
+        return False
+    except Exception as e:
+        # Catch any other unexpected errors during execution
+        print(f"An unexpected error occurred: {e}", file=sys.stderr)
+        # import traceback
+        # print(traceback.format_exc(), file=sys.stderr) # Uncomment for full traceback
+        return False
+
+# --- Main Execution ---
+if __name__ == "__main__":
+    # You can now access the parsed arguments via the 'args' object
+    print(f"Parsed arguments: {args}")
+    print(f"Argument 'o' is set: {args.o}")
+    print(f"Argument 'spoof' is set: {args.spoof}")
+
+    # Call the function to run the batch script
+    # Note: The run_batch_script function itself does not currently use args.o or args.spoof
+    success = run_batch_script(batch_file_path)
+
+    if success:
+        print("\nScript finished successfully.")
+    else:
+        print("\nScript finished with errors.")
+        sys.exit(1) # Exit with a non-zero code to indicate failure
+
+    # Add a line to pause the terminal if needed after execution
+    # print("\nPress Enter to exit.")
+    # input()
