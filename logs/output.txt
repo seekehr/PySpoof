@@ -1,0 +1,25 @@
+Time: 2025-04-26 05:47:36
+
+==============PC==============
+Hostname: SecHex-ZANBNZW
+Processor ID: BFEBFBFF000906A3
+UUID: 479B2D2D-E804-CB47-BA81-C5CB1787069F
+Motherboard: S311NRCX0031FAMB
+BIOS: S3NRCX01L007116
+Machine GUID: 4615e549-s566-q721-j499-f3149d89
+ComputerSystem Properties Count: 53
+==============PC==============
+Windows installed: 2024-12-13 16:29:31 || 20241213162931
+OS Serial: 67489-63188-60292-X0
+User SID: S-1-5-21-1103905739-3479899694-3139268737-1001
+==============NET==============
+General MAC: 00:15:5D:E4:5E:E2
+Local IP: 192.168.100.106
+Public IP: 154.57.217.74
+WLAN GUID: 39fb4fd8-51bb-4520-83a4-3e572a2d3b2e
+WLAN Phys Addr: FE-53-12-16-A2-03
+WLAN BSSID: 70-8C-B6-E3-4A-E8
+==============DISK==============
+Disk Serial: E823_8FA6_BF53_0001_001B_448B_474B_9D8D.
+Volume Serial: 1446379651
+Disk Model: NVMe WD PC SN740 SDDPNQD-512G-1002

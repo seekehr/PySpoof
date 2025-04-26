@@ -1,0 +1,7 @@
+import pythoncom
+import wmi
+
+def spoof_mac():
+    pythoncom.CoInitialize()
+    wm = wmi.WMI()
+

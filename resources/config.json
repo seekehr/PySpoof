@@ -1,7 +1,3 @@
 {
-  "hostname": {
-    "uwu": "hi"
-  },
-  "port": {},
-  "route": {}
+  "output": "output.txt"
 }

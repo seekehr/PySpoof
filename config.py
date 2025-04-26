@@ -10,7 +10,7 @@ class Config:
     _lock = Lock()  # Protect against race conditions
     _config_data = None
 
-    def __new__(cls, path='config.json'):
+    def __new__(cls, path='./resources/config.json'):
         with cls._lock:  # Ensure thread-safety during instance creation
             if cls._instance is None:
                 cls._instance = super(Config, cls).__new__(cls)

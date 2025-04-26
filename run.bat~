@@ -1,0 +1,14 @@
+@echo off
+:: Check for admin privileges
+net session >nul 2>&1
+if %errorlevel% neq 0 (
+    echo Requesting admin privileges...
+    powershell -Command "Start-Process '%~f0' -Verb runAs"
+    exit /b
+)
+
+:: Now run your Python app
+cd /d %~dp0
+call .\venv\Scripts\activate
+python app.py
+pause
