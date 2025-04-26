@@ -16,7 +16,6 @@ class Config:
             if cls._instance is None:
                 cls._instance = super(Config, cls).__new__(cls)
                 cls._instance._config_data = cls._instance._load_config(path)
-                print(type(logger))
                 cls._instance._path = path  # Store the path of the config file
         return cls._instance
 

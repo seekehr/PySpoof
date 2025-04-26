@@ -20,9 +20,7 @@ class Config:
         return cls._instance
 
     def __init__(self, logger: Logger, path='./resources/config.json'):
-        self._config_data = self._load_config(path)
-        self._path = path
-        self._logger = logger
+        pass
 
     def _load_config(self, path):
         if not os.path.exists(path):

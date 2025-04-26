@@ -5,7 +5,7 @@ import os
 from systeminformation import SystemInformation
 from utils.logger import Logger
 
-class Spoofer:
+class Spoofer():
     def __init__(self, sys_info: SystemInformation, logger: Logger):
         self._sys_info = sys_info
         self._logger = Logger

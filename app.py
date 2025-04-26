@@ -61,11 +61,11 @@ def handle_args(conf, log):
 
     return args
 
-async def spoof(args, sys_info: SystemInformation):
+async def spoofHandleArgs(args, sys_info: SystemInformation):
     if args.spoof:
         logger.inform("Spoofing...")
         from spoofer import Spoofer
-        spoofer = Spoofer(sys_info)
+        spoofer = Spoofer(sys_info, logger)
         await start_interactive_cli(spoofer)
         exit(1)
 
@@ -81,7 +81,7 @@ async def main():
         if args.o:
             config.save()
         if args.spoof:
-            await spoof(args, sys_info)
+            await spoofHandleArgs(args, sys_info)
 
     except Exception as e:
         logger.inform(f"{ERROR}: {e}")

@@ -1,32 +1,69 @@
 import inspect
+import threading
 
 from utils.formats import *
+
+"""
+Thread safe logger
+"""
 class Logger:
+    _instance = None
+    _lock = threading.Lock()
+    
+    def __new__(cls, path):
+        # Use the class-level lock to ensure thread-safe instance creation
+        with cls._lock:
+            if cls._instance is None:
+                # Create the instance using the parent class's __new__ method
+                cls._instance = super(Logger, cls).__new__(cls)
+                # Initialize the instance (this is typically done in __init__)
+                # We call this here because __init__ won't be called on subsequent calls to Logger()
+                cls._instance._path = path
+                cls._instance._logs = []
+                # The instance-specific lock for logging operations is still needed
+                cls._instance._log_lock = threading.Lock() # Use a different name to avoid confusion
+        return cls._instance
+
+    # Modify __init__ to do nothing if the instance already exists.
+    # This prevents re-initialization if Logger() is called multiple times.
     def __init__(self, path):
-        self._path = path
-        self._logs = []
+        # __new__ already handled the initial setup.
+        # We could add checks here if we needed to update the path on subsequent calls,
+        # but for a strict singleton, we typically ignore subsequent init calls.
+        pass
 
     def log(self, message: str):
-        self._logs.append(message)
-        print(message)
+        with self._lock:
+            self._logs.append(message)
+        print(message) # Printing is generally thread-safe for standard output
 
     def inform(self, message: str):
-        self._logs.append(INFO + message)
-        print("[INFO]: " + message)
+        with self._lock:
+            self._logs.append("[INFO]: " + message)
+        print(INFO + message)
 
     def warn(self, message: str, err: Exception = None):
-        self._logs.append("[WARNING]: " + message + f".. Exception:" + str(err))
+        log_message = "[WARNING]: " + message + f".. Exception:" + str(err)
+        with self._lock:
+            self._logs.append(log_message)
         print(WARNING + message + f"... {Fore.RESET} Exception:" + str(err))
 
     def error(self, message: str, err: Exception = None):
-        self._logs.append("[ERROR]: " + message + f".. Exception:" + str(err))
+        log_message = "[ERROR]: " + message + f".. Exception:" + str(err)
+        with self._lock:
+            self._logs.append(log_message)
         print(ERROR + message + f"... {Fore.RESET} Exception:" + str(err))
 
     def success(self, message: str):
-        self._logs.append("[SUCCESS]: " + message)
+        with self._lock:
+            self._logs.append("[SUCCESS]: " + message)
         print(SUCCESS + message)
 
-    async def save(self):
-        with open(self._path, 'w') as file:
-            for log in self._logs:
-                file.write(log + '\n')
+    def save(self):
+        with self._lock:
+            try:
+                with open(self._path, 'w') as file:
+                    for log in self._logs:
+                        file.write(log + '\n')
+            except IOError as e:
+                print(ERROR + f"Failed to save log file {self._path}: {e}")
