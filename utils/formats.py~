@@ -1,0 +1,5 @@
+from colorama import Fore, Back, Style
+SUCCESS = Fore.GREEN + "[SUCCESS] " + Style.RESET_ALL
+WARNING = Fore.YELLOW + "[WARNING] " + Style.RESET_ALL
+ERROR = Fore.RED + "[ERROR] " + Style.RESET_ALL
+INFO = Fore.BLUE + "[INFO]" + Style.RESET_ALL

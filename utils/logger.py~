@@ -12,7 +12,7 @@ class Logger:
     _instance = None
     _lock = threading.Lock()
 
-    def __new__(cls, path):
+    def __new__(cls, path, debug=True):
         # Use the class-level lock to ensure thread-safe instance creation
         with cls._lock:
             if cls._instance is None:
@@ -22,53 +22,67 @@ class Logger:
                 # We call this here because __init__ won't be called on subsequent calls to Logger()
                 cls._instance._path = path
                 cls._instance._logs = []
-                # The instance-specific lock for logging operations is still needed
-                cls._instance._log_lock = threading.Lock() # Use a different name to avoid confusion
+                cls._instance._debug = debug
+                cls._instance._log_lock = threading.Lock()
         return cls._instance
 
-    # Modify __init__ to do nothing if the instance already exists.
-    # This prevents re-initialization if Logger() is called multiple times.
     def __init__(self, path):
-        # __new__ already handled the initial setup.
-        # We could add checks here if we needed to update the path on subsequent calls,
-        # but for a strict singleton, we typically ignore subsequent init calls.
         pass
 
     def log(self, message: str):
         with self._lock:
-            self._logs.append(message)
+            self._logs.append(message + "\n")
         print(message) # Printing is generally thread-safe for standard output
 
     def inform(self, message: str):
         with self._lock:
-            self._logs.append("[INFO]: " + message)
+            self._logs.append("[INFO]: " + message + "\n")
         print(INFO + message)
 
-    def warn(self, message: str, err: Exception = None):
-        log_message = "[WARNING]: " + message
-        if isinstance(err, Exception): log_message += f".. Exception: {str(err)}"
-        with self._lock:
-            self._logs.append(log_message)
-        string = WARNING + message + f"... {Fore.RESET}"
+    def warn(self, message: str,
+              err: tuple[Type[BaseException], BaseException, TracebackType] | tuple[None, None, None] | None = None):
+        log_message = message
+        if err is not None:
+            exc_type, exc_obj, tb = err
+            line_number = tb.tb_lineno
+            file_name = tb.tb_frame.f_code.co_filename
+            if isinstance(err,
+                          Exception): log_message += f".. Exception: {str(exc_obj)} at line {line_number} in {file_name}"
+
+        string = "[WARNING] " + message
         if err:
-            string += f"Exception: {str(err)}"
-        print(str)
+            string += f". Exception: {str(err)}"
+        with self._lock:
+            self._logs.append(string + "\n")
+        print(WARNING + log_message)
 
     def error(self, message: str, err:  tuple[Type[BaseException], BaseException, TracebackType] | tuple[None, None, None]|None = None):
-        log_message = "[ERROR]: " + message
-        exc_type, exc_obj, tb = err
-        if isinstance(err, Exception): log_message += f".. Exception: {str(exc_obj)} at line {tb.tb_lineno}"
-        with self._lock:
-            self._logs.append(log_message)
-        string = ERROR + message + f"... {Fore.RESET}"
+        log_message = message
+        if err is not None:
+            log_message = "[WARN]: " + message
+            exc_type, exc_obj, tb = err
+            line_number = tb.tb_lineno
+            file_name = tb.tb_frame.f_code.co_filename
+            if isinstance(err,
+                          Exception): log_message += f".. Exception: {str(exc_obj)} at line {line_number} in {file_name}"
+        unformattedLogMsg = "[ERROR] " + message
         if err:
-            string += f"Exception: {str(err)}"
-        print(str)
+            unformattedLogMsg += f"Exception: {str(err)}"
+        with self._lock:
+            self._logs.append(unformattedLogMsg + "\n")
+
+        print(ERROR + log_message)
 
     def success(self, message: str):
         with self._lock:
-            self._logs.append("[SUCCESS]: " + message)
+            self._logs.append("[SUCCESS]: " + message + "\n")
         print(SUCCESS + message)
+
+    def debug(self, message: str):
+        if (!self._debug): return
+        with self._lock:
+            self._logs.append("[DEBUG]: " + message + "\n")
+        print(DEBUG + message)
 
     def save(self):
         with self._lock:

@@ -17,6 +17,7 @@ from utils.formats import ERROR
 import machineid
 import re
 from utils.logger import Logger
+import pythoncom
 
 # Comments powered by AI
 class SystemInformation:
@@ -288,10 +289,10 @@ class SystemInformation:
                 mac = ':'.join(mac_pairs)  # Use colon as standard separator
                 return mac
             else:
-                self.self.logger.errorger.error(f"{ERROR} {{MAC}}: Processed hex value '{mac_num}' has unexpected length {len(mac_num)}.")
+                self.logger..error(f"{ERROR} {{MAC}}: Processed hex value '{mac_num}' has unexpected length {len(mac_num)}.")
                 return None
         except Exception as e:
-            self.self.logger.errorger.error(f"{ERROR} {{MAC}}: {e}")
+            self.logger.error(f"{ERROR} {{MAC}}: {e}")
             return None
 
     def _motherboard(self):
@@ -303,7 +304,7 @@ class SystemInformation:
                 return board.SerialNumber.strip()
             return None  # No board found
         except Exception as e:
-            self.self.logger.errorger.error(f"{ERROR} {{Motherboard}}: {e}")
+            self.logger.error(f"{ERROR} {{Motherboard}}: {e}", sys.exc_info())
             return None
 
     def _bios(self):
@@ -315,7 +316,7 @@ class SystemInformation:
                 return bios.SerialNumber.strip()
             return None  # No BIOS information found
         except Exception as e:
-            self.self.logger.errorger.error(f"{ERROR} {{BIOS}}: {e}")
+            self.logger.error(f"{ERROR} {{BIOS}}: {e}")
             return None
 
     def _disk_serial(self):
@@ -327,7 +328,7 @@ class SystemInformation:
                 return disk.SerialNumber.strip()
             return None  # No disk found
         except Exception as e:
-            self.self.logger.errorger.error(f"{ERROR} {{Disk Serial}}: {e}")
+            self.logger.error(f"{ERROR} {{Disk Serial}}: {e}")
             return None
 
     def _machine_guid(self):
@@ -371,7 +372,7 @@ class SystemInformation:
             s.close()
             return ip
         except Exception as e:
-            self.self.logger.errorger.error(f"{ERROR} {{Local IP}}: {e}")
+            self.logger.error(f"{ERROR} {{Local IP}}: {e}")
             return None
 
     def _public_ip(self):
@@ -394,7 +395,7 @@ class SystemInformation:
 
             return None  # All services failed
         except Exception as e:
-            self.self.logger.errorger.error(f"{ERROR} {{Public IP}}: {e}")
+            self.logger.error(f"{ERROR} {{Public IP}}: {e}")
             return None
 
     def _install_date(self):
@@ -416,7 +417,7 @@ class SystemInformation:
                 install_date = datetime.datetime.fromtimestamp(install_date_timestamp)
                 return install_date.strftime("%Y%m%d%H%M%S")
         except Exception as e:
-            self.self.logger.errorger.error(f"{ERROR} {{Install Date}}: {e}")
+            self.logger.error(f"{ERROR} {{Install Date}}: {e}")
             return None
 
     def _hostname(self):
@@ -449,7 +450,7 @@ class SystemInformation:
                         continue
                 return None  # No valid value found
         except Exception as e:
-            self.self.logger.errorger.error(f"{ERROR} {{OS Serial}}: {e}")
+            self.logger.error(f"{ERROR} {{OS Serial}}: {e}")
             return None
 
     def _volumeserial(self):
@@ -475,7 +476,7 @@ class SystemInformation:
             )
             return str(serial_number.value)
         except Exception as e:
-            self.self.logger.errorger.error(f"{ERROR} {{Volume Serial}}: {e}")
+            self.logger.error(f"{ERROR} {{Volume Serial}}: {e}")
             return None
 
     def _processor_id(self):
@@ -487,7 +488,7 @@ class SystemInformation:
                 return processor.ProcessorId.strip()
             return None  # No processor found
         except Exception as e:
-            self.self.logger.errorger.error(f"{ERROR} {{Processor ID}}: {e}")
+            self.logger.error(f"{ERROR} {{Processor ID}}: {e}")
             return None
 
     def _disk_model(self):
@@ -499,7 +500,7 @@ class SystemInformation:
                 return disk.Model.strip()
             return None  # No disk found
         except Exception as e:
-            self.self.logger.errorger.error(f"{ERROR} {{Disk Model}}: {e}")
+            self.logger.error(f"{ERROR} {{Disk Model}}: {e}")
             return None
 
     def _user_sid(self):

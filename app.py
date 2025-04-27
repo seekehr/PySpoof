@@ -1,23 +1,20 @@
+import json
+import argparse
 import asyncio
+import atexit
 import ctypes
 import os
-import platform
-import re
 import sys
-from asyncio import gather
-from datetime import datetime
-from systeminformation import SystemInformation
-import winreg
-import wmi
 import time
-from colorama import Fore, Back, Style
+from colorama import Fore, Style
 from colorama import init
+
 from config import Config
-import argparse
-from utils.formats import ERROR, SUCCESS, WARNING
+from spoofers.spoofer import Spoofer
+from system_information import SystemInformation
+from utils.formats import ERROR, SUCCESS
 from utils.logger import Logger
-import atexit
-from spoofer import Spoofer
+start_time = time.time()
 init(autoreset=True)
 
 def is_admin():
@@ -27,14 +24,17 @@ def is_admin():
         logger.error(f"{ERROR} while loading: {e}", sys.exc_info())
         exit(1)
 
-os.makedirs("logs", exist_ok=True)
-
-start_time = time.time()
-"""
 if not is_admin():
-    log("Please run this script as an administrator.")
+    print("Please run this script as an administrator.")
     exit(1)
-"""
+
+def dirsAndFiles():
+    os.makedirs("logs", exist_ok=True)
+    os.makedirs("resources", exist_ok=True)
+    with open("resources/config.json", "w") as f:
+        f.write(json.dumps({}))
+dirsAndFiles()
+
 logger = Logger(os.path.join("logs", "system_logs.txt"))
 config = Config(logger)
 output = False
@@ -45,7 +45,6 @@ def handle_args(conf, log):
     parser.add_argument('--o', action='store_true', help="Enable saving output to the default file (output.txt)")
     parser.add_argument('--spoof', action='store_true', help="Run in spoofer mode")
     args = parser.parse_args()
-    print(f"{args}")
     default_output_filename = "resources/output.txt"
 
     if args.o:
@@ -53,21 +52,16 @@ def handle_args(conf, log):
         log.inform(f"Output saving enabled by --o flag. Output will be saved to: {default_output_filename}")
     else:
         current_config_output = conf.get("output")
+
         if isinstance(current_config_output, str) and current_config_output.lower().endswith(".txt"):
             log.inform(f"Output saving enabled by config. Using output file: {current_config_output}")
-        else:
-            conf.set("output", None)
-            log.inform("Output saving disabled (no --o flag and no valid config output file).")
-
-    args.output_path = conf.get("output")
 
     return args
 
 async def spoofHandleArgs(args, sys_info: SystemInformation):
     if args.spoof:
-        logger.inform("Spoofing...")
-        spoofer = Spoofer(sys_info, logger)
-        await start_interactive_cli(spoofer)
+        spoofer = Spoofer(sys_info, logger, config)
+        await start_interactive_cli(spoofer, sys_info)
         exit(1)
 
 # ==== Main ==== (bro im so sweepy) #
@@ -76,8 +70,7 @@ async def main():
         args = handle_args(config, logger)
         sys_info = SystemInformation(logger)
         logger.inform("Starting to load system information asynchronously...\n")
-        await sys_info.load_system_info_async()
-        sys_info.log()
+        print(sys_info.get())
         logger.log("\nFinished loading. Time: " + str(time.time() - start_time) + " seconds")
         if args.o:
             config.save()
@@ -89,29 +82,56 @@ async def main():
         exit(1)
 
 # ==== Spoofer =====
-async def start_interactive_cli(spoofer): # Assuming spoofer object has methods create_registry_backup and spoof_mac
-    backup = False
-    while True:
-        command = input(f"{Fore.CYAN}Spoofing CLI> {Style.RESET_ALL}").lower() # Get input and convert to lowercase
-        match command:
-            case "exit":
-                logger.inform(f"{SUCCESS}Exiting spoofing mode...{Style.RESET_ALL}")
-                break # Exit the loop
-            case "help":
-                logger.log("Available commands:")
-                logger.log(" mac - Start the MAC address spoofing")
-                logger.log(" exit    - Exit the spoofing mode")
-            case "mac":
-                if not backup:
-                    logger.warn(f"{WARNING} Backup not created! Run 'backup' command first.")
-                    continue
-                logger.inform(f"{Fore.YELLOW}Spoofing MAC address...{Style.RESET_ALL}")
-                await spoofer.spoof_mac() # Assuming spoof_mac might be async
-            case "backup":
-                spoofer.create_registry_backup();
-                backup = True
-            case _: # Wildcard case for any other input
-                logger.error(f"{ERROR} Unknown command: {command}")
+async def start_interactive_cli(spoofer, sys_info): # Assuming spoofer object has methods create_registry_backup and spoof_mac
+    try:
+        backup = False
+        # Check if the backup file exists
+        backup_path = config.get("backup_path") + ".reg"
+        if backup_path and os.path.exists(backup_path):
+            backup = True
+            logger.inform(f"Existing backup found at {backup_path}.{Style.RESET_ALL}")
+        else:
+             logger.warn(f"No existing backup found at {backup_path}. Please create a backup before spoofing.{Style.RESET_ALL}")
+
+        while True:
+            command = input(f"{Fore.CYAN}Spoofing CLI> {Style.RESET_ALL}").lower()  # Get input and convert to lowercase
+            match command:
+                case "exit":
+                    logger.inform(f"{SUCCESS}Exiting spoofing mode...{Style.RESET_ALL}")
+                    break  # Exit the loop
+                case "help":
+                    logger.log("Available commands:")
+                    logger.log(" mac     - Start the MAC address spoofing")
+                    logger.log(" backup  - Create a registry backup")
+                    logger.log(" exit    - Exit the spoofing mode")
+                case "mac":
+                    if not backup:
+                        logger.warn(f"Backup not created! Run 'backup' command first.{Style.RESET_ALL}")
+                        continue
+                    # Assuming spoofer.spoof_mac() is an async operation if the cli is async
+                    # If not, you might need await spoofer.spoof_mac() if spoof_mac is an awaitable
+                    oldMac = sys_info.mac
+                    result = await spoofer.spoof_mac()
+                    if result:
+                        logger.log(f"{Fore.GREEN}Old MAC: {Fore.RESET}{oldMac}")
+                        logger.log(f"{Fore.GREEN}New MAC: {Fore.RESET}{sys_info.updated_mac}")
+                        while True:
+                            logger.log("MAC: " + sys_info.mac)
+                            time.sleep(3)
+                case "backup":
+                    logger.inform(f"{Fore.YELLOW}Creating registry backup...{Style.RESET_ALL}")
+                    # Assuming spoofer.create_registry_backup() is an async operation
+                    # If not, you might need await spoofer.create_registry_backup() if create_registry_backup is an awaitable
+                    spoofer.create_registry_backup()
+                    backup = True
+                    logger.inform(f"{SUCCESS}Backup created successfully.{Style.RESET_ALL}")
+                case "info":
+                    sys_info.log()
+                case _:  # Wildcard case for any other input
+                    logger.error(f"{ERROR} Unknown command: {command}{Style.RESET_ALL}")
+    except Exception as e:
+        logger.error(f"{ERROR}Error found during spoofing:{Style.RESET_ALL}", sys.exc_info())
+
 
 def cleanup_function():
     logger.save()

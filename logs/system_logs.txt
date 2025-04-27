@@ -1,8 +1,5 @@
 [INFO]: Output saving enabled by --o flag. Output will be saved to: resources/output.txt
+
 [INFO]: Starting to load system information asynchronously...
 
 
-Finished loading. Time: 1.1141226291656494 seconds
-[SUCCESS]: Config saved to ./resources/config.json
-[INFO]: Spoofing...
-[INFO]: [31m[ERROR] [0m: cannot unpack non-iterable NoneType object

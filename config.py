@@ -11,7 +11,7 @@ class Config:
     _lock = Lock()  # Protect against race conditions
     _config_data = None
 
-    def __new__(cls, logger: Logger, path='./resources/config.json'):
+    def __new__(cls, logger: Logger, path='resources/config.json'):
         with cls._lock:  # Ensure thread-safety during instance creation
             if cls._instance is None:
                 cls._instance = super(Config, cls).__new__(cls)
@@ -21,7 +21,10 @@ class Config:
         return cls._instance
 
     def __init__(self, logger: Logger, path='./resources/config.json'):
-        pass
+        if not self.has("output"):
+            self.set("output", "none")
+        if not self.has("backup_path"):
+            self.set("backup_path", "resources/backup")
 
     def _load_config(self, path):
         if not os.path.exists(path):

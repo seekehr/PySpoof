@@ -6,17 +6,23 @@ import subprocess
 import os
 from systeminformation import SystemInformation
 from utils.logger import Logger
+from config import Config
 
 class Spoofer:
-    def __init__(self, sys_info: SystemInformation, logger: Logger):
+    def __init__(self, sys_info: SystemInformation, logger: Logger, config: Config):
         self._sys_info = sys_info
         self._logger = logger
+        self._config = config
         self._random_values = generate_random_values()
 
     def create_registry_backup(self):
         """Create a backup of the registry before making any changes"""
         try:
-            backup_path = os.path.join(os.getcwd(), "resources/backup.reg")
+            errors = 0
+            backup_path = "resources/backup.reg"
+            if self._config.has("backup_path"):
+                backup_path = self._config.get("backup_path") + ".reg"
+
             self._logger.inform(f"Creating registry backup at {backup_path}...")
 
             # Keys to back up
@@ -35,11 +41,18 @@ class Spoofer:
                 process = subprocess.run(command, shell=True, capture_output=True, text=True)
 
                 if process.returncode != 0:
+                    errors += 1
                     self._logger.warn(f"Failed to backup {key}: {process.stderr}")
                 else:
                     self._logger.success(f"Backed up {key}")
 
-            self._logger.success(f"Registry backup created at {backup_path}")
+            if errors > 0: # todo
+                with open(backup_path + ".reg", "w") as f:
+                    f.write("")
+                self._logger.success(f"Registry backup created at {backup_path}")
+            else:
+                self._logger.error(f"Failed to create registry backup.")
+
             return True
         except Exception as e:
             exc_type, exc_obj, tb = sys.exc_info()
@@ -54,30 +67,4 @@ class Spoofer:
             self._logger.error(f"Failed to create registry backup.", sys.exc_info())
             return False
 
-    def spoof_mac(self):
-        try:
-           current_mac = self._sys_info.mac
-           new_mac = self._random_values.mac
-
-           def get_interface_name(mac_address):
-               # Run PowerShell command to filter by MAC address
-               command = f'powershell Get-NetAdapter | Where-Object {{ $_.MacAddress -eq "{mac_address}" }}'
-               result = subprocess.check_output(command, shell=True, text=True)
-
-               # If result is not empty, return the interface name
-               if result:
-                   # Extract the interface name from the result
-                   lines = result.splitlines()
-                   for line in lines:
-                       if "Name" in line:  # Name of the interface is usually labeled as 'Name'
-                           interface_name = line.split(":")[1].strip()
-                           return interface_name
-               return None
-
-           interface = get_interface_name(current_mac)
-           subprocess.call(f'powershell Set-NetAdapter -Name "{interface}" -MacAddress "{new_mac}"', shell=True)
-           subprocess.call(f'powershell Disable-NetAdapter -Name "{interface}" -Confirm:$false', shell=True)
-           subprocess.call(f'powershell Enable-NetAdapter -Name "{interface}"', shell=True)
-        except Exception as e:
-            print("hiiii")
-            self._logger.error(f"Failed to spoof MAC address", sys.exc_info())
+   

@@ -1,7 +1,4 @@
 {
     "output": "resources/output.txt",
-    "uwu": "hi",
-    "a": {
-        "b": "c"
-    }
+    "backup_path": "resources/backup"
 }
