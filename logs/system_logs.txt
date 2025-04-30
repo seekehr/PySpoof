@@ -1,5 +1,12 @@
-[INFO]: Output saving enabled by --o flag. Output will be saved to: resources/output.txt
+[INFO]: Listening for system information updates...
 
 [INFO]: Starting to load system information asynchronously...
 
+
+
+Finished loading. Time: 3.266838312149048 seconds
+
+[INFO]: Listening for updates...
+
+[SUCCESS]: Config saved to resources/config.json
 

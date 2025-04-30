@@ -5,11 +5,15 @@ import atexit
 import ctypes
 import os
 import sys
+import threading
 import time
+from threading import Thread
+
 from colorama import Fore, Style
 from colorama import init
 
 from config import Config
+from listeners.update_info_listener import UpdateInfoListener
 from spoofers.spoofer import Spoofer
 from system_information import SystemInformation
 from utils.formats import ERROR, SUCCESS
@@ -40,23 +44,29 @@ config = Config(logger)
 output = False
 
 
-def handle_args(conf, log):
+async def handle_args(sys_info, log) -> Thread|None:
     parser = argparse.ArgumentParser(description="Process some flags.")
     parser.add_argument('--o', action='store_true', help="Enable saving output to the default file (output.txt)")
     parser.add_argument('--spoof', action='store_true', help="Run in spoofer mode")
+    parser.add_argument("--listen", action="store_true", help="Enable listening for system information updates")
     args = parser.parse_args()
     default_output_filename = "resources/output.txt"
 
     if args.o:
-        conf.set("output", default_output_filename)
+        config.set("output", default_output_filename)
         log.inform(f"Output saving enabled by --o flag. Output will be saved to: {default_output_filename}")
     else:
-        current_config_output = conf.get("output")
-
+        current_config_output = config.get("output")
         if isinstance(current_config_output, str) and current_config_output.lower().endswith(".txt"):
             log.inform(f"Output saving enabled by config. Using output file: {current_config_output}")
 
-    return args
+    thread = None
+    if args.spoof:
+        await spoofHandleArgs(args, sys_info)
+    if args.listen:
+        thread = listenHandleArgs(args, sys_info)
+
+    return thread
 
 async def spoofHandleArgs(args, sys_info: SystemInformation):
     if args.spoof:
@@ -64,19 +74,36 @@ async def spoofHandleArgs(args, sys_info: SystemInformation):
         await start_interactive_cli(spoofer, sys_info)
         exit(1)
 
+def listenHandleArgs(args, sys_info) -> Thread | None:
+    listen = False
+    if args.listen:
+        listen = True
+    else:
+        current_config_output = config.get("listen")
+        if isinstance(current_config_output, str) and current_config_output.lower().endswith("true"):
+            logger.inform(f"Listener enabled by config")
+            listen = True
+
+    if listen:
+        logger.inform("Listening for system information updates...")
+        listener = UpdateInfoListener(sys_info, logger)
+        listener_thread = threading.Thread(target=listener.run, daemon=False)
+        listener_thread.start()
+        return listener_thread
+    return None
+
+
 # ==== Main ==== (bro im so sweepy) #
 async def main():
     try:
-        args = handle_args(config, logger)
         sys_info = SystemInformation(logger)
+        thread = await handle_args(sys_info, logger)
         logger.inform("Starting to load system information asynchronously...\n")
         print(sys_info.get())
         logger.log("\nFinished loading. Time: " + str(time.time() - start_time) + " seconds")
-        if args.o:
-            config.save()
-        if args.spoof:
-            await spoofHandleArgs(args, sys_info)
-
+        while thread.is_alive():
+            logger.inform("Listening for updates...")
+            time.sleep(15)
     except Exception as e:
         logger.inform(f"{ERROR}: {e}")
         exit(1)

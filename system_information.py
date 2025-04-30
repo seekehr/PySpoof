@@ -23,7 +23,17 @@ import pythoncom
 # Comments powered by AI
 # todo: shitty code but idrc for now since throwaway project
 class SystemInformation:
+    _instance = None  # Class variable to hold the singleton instance
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:  # If the instance does not exist
+            cls._instance = super().__new__(cls)  # Create the new instance
+        return cls._instance  # Return the existing or newly created instance
+
     def __init__(self, logger: Logger):
+        if hasattr(self, 'initialized') and self.initialized:  # Check if it's already initialized
+            return  # Avoid reinitialization of the instance
+
         # PC hardware identifiers
         self.__hostname = None
         self.__mac = None
@@ -32,30 +42,32 @@ class SystemInformation:
         self.__processor_id = None
         self.__uuid = None
         self.__machineguid = None
-        
+
         # Disk information
         self.__disk_serial = None
         self.__disk_model = None
         self.__volume_serial = None
-        
+
         # OS information
         self.__installdate = None
-        self.__os_serial = None
+        self.__osserial = None
         self.__user_sid = None
-        
+
         # Network information
         self.__local_ip = None
         self.__public_ip = None
         self.__wlan_guid = None
         self.__wlan_physical_address = None
         self.__wlan_bssid = None
-        
+
         # Additional information
-        self.__computersystem_properties = None
         self.__computersystem_length = None
-        
+
         # Status flag
         self.logger = logger
+
+        # Mark the instance as initialized
+        self.initialized = True
 
     def get(self):
         output_str = ""
@@ -64,15 +76,15 @@ class SystemInformation:
             output_str += Fore.YELLOW + "==============" + Fore.LIGHTMAGENTA_EX + "PC" + Fore.YELLOW + "==============" + Fore.RESET + "\n"
             output_str += Fore.GREEN + "Hostname: " + Fore.RESET + (self.updated_hostname or "Invalid Hostname") + "\n"
             output_str += Fore.GREEN + "Processor ID: " + Fore.RESET + (
-                        self.processor_id or "Invalid Processor ID") + "\n"
+                        self.updated_processor_id or "Invalid Processor ID") + "\n"
             output_str += Fore.GREEN + "UUID: " + Fore.RESET + (self.updated_uuid or "Invalid UUID") + "\n"
             output_str += Fore.GREEN + "Motherboard: " + Fore.RESET + (
                         self.updated_motherboard or "Invalid Motherboard number") + "\n"
             output_str += Fore.GREEN + "BIOS: " + Fore.RESET + (self.updated_bios or "Invalid BIOS number") + "\n"
             output_str += Fore.GREEN + "Machine GUID: " + Fore.RESET + (
-                        self.updated_machine_guid or "Invalid Machine GUID") + "\n"
+                        self.updated_machineguid or "Invalid Machine GUID") + "\n"
             output_str += Fore.GREEN + "ComputerSystem Properties Count: " + Fore.RESET + (
-                        str(self.computersystem_length) or "N/A") + "\n"
+                        str(self.updated_computersystem_length) or "N/A") + "\n"
 
             output_str += Fore.YELLOW + "==============" + Fore.LIGHTMAGENTA_EX + "PC" + Fore.YELLOW + "==============" + Fore.RESET + "\n"
             if self.updated_installdate:
@@ -102,10 +114,6 @@ class SystemInformation:
             output_str += Fore.GREEN + "Volume Serial: " + Fore.RESET + (
                         self.updated_volume_serial or "Invalid Volume Serial") + "\n"
             output_str += Fore.GREEN + "Disk Model: " + Fore.RESET + (self.updated_disk_model or "Invalid Disk Model") + "\n"
-
-            lol = self.getAll()
-            con = self.getAllUpdated()
-            print("meow")
         except Exception as e:
             output_str += f"{ERROR} Could not self.logger.error. Error: {e}" + "\n"
 
@@ -115,19 +123,22 @@ class SystemInformation:
         results = {}
         prefix = f"_{self.__class__.__name__}__"  # Dynamically get class name and prefix
         for attr_name, value in self.__dict__.items():
-            print(attr_name)
             # Only include attributes that are mangled private attributes (i.e., start with _ClassName__)
             if attr_name.startswith(prefix):
                 clean_name = attr_name.split("__", 1)[-1]  # Strip the class name
                 results[clean_name] = value
-        return results
+
+        # Sort the dictionary by keys (attribute names) alphabetically
+        sorted_results = {k: results[k] for k in sorted(results)}
+
+        return sorted_results
 
     def getAllUpdated(self):
-        return [
-            getattr(self, name)
-            for name, prop in inspect.getmembers(self.__class__, lambda v: isinstance(v, property))
+        return {
+            name: getattr(self, name)
+            for name, prop in sorted(inspect.getmembers(self.__class__, lambda v: isinstance(v, property)))
             if name.startswith("updated_")
-        ]
+        }
 
     # ----------------------
     # Property getters
@@ -149,16 +160,41 @@ class SystemInformation:
         return self.__bios
 
     @property
-    def disk_serial(self):
-        return self.__disk_serial
+    def processor_id(self):
+        return self.__processor_id
+
+    @property
+    def uuid(self):
+        return self.__uuid
 
     @property
     def machine_guid(self):
         return self.__machineguid
 
     @property
-    def uuid(self):
-        return self.__uuid
+    def disk_serial(self):
+        return self.__disk_serial
+
+    @property
+    def disk_model(self):
+        return self.__disk_model
+
+    @property
+    def volume_serial(self):
+        return self.__volume_serial
+
+    # OS information
+    @property
+    def installdate(self):
+        return self.__installdate
+
+    @property
+    def osserial(self):
+        return self.__osserial
+
+    @property
+    def user_sid(self):
+        return self.__user_sid
 
     @property
     def local_ip(self):
@@ -169,30 +205,6 @@ class SystemInformation:
         return self.__public_ip
 
     @property
-    def installdate(self):
-        return self.__installdate
-
-    @property
-    def osserial(self):
-        return self.__os_serial
-
-    @property
-    def volume_serial(self):
-        return self.__volume_serial
-
-    @property
-    def processor_id(self):
-        return self.__processor_id
-
-    @property
-    def disk_model(self):
-        return self.__disk_model
-
-    @property
-    def user_sid(self):
-        return self.__user_sid
-
-    @property
     def wlan_guid(self):
         return self.__wlan_guid
 
@@ -201,10 +213,10 @@ class SystemInformation:
         return self.__wlan_bssid
 
     @property
-    def computersystem_length(self):
-        return self._computersystem_length
+    def computer_length(self):
+        return self.__computersystem_length
 
-    # Synchronised values
+    # Hardware
     @property
     def updated_hostname(self):
         return self._hostname()
@@ -222,25 +234,31 @@ class SystemInformation:
         return self._bios()
 
     @property
-    def updated_disk_serial(self):
-        return self._disk_serial()
-
-    @property
-    def updated_machine_guid(self):
-        return self._machine_guid()
+    def updated_processor_id(self):
+        return self._processor_id()
 
     @property
     def updated_uuid(self):
         return self._uuid()
 
     @property
-    def updated_local_ip(self):
-        return self._local_ip()
+    def updated_machineguid(self):
+        return self._machine_guid()
+
+    # Disk
+    @property
+    def updated_disk_serial(self):
+        return self._disk_serial()
 
     @property
-    def updated_public_ip(self):
-        return self._public_ip()
+    def updated_disk_model(self):
+        return self._disk_model()
 
+    @property
+    def updated_volume_serial(self):
+        return self._volumeserial()
+
+    # OS
     @property
     def updated_installdate(self):
         return self._install_date()
@@ -250,24 +268,21 @@ class SystemInformation:
         return self._os_serial()
 
     @property
-    def updated_volume_serial(self):
-        return self._volumeserial()
-
-    @property
-    def updated_processor_id(self):
-        return self._processor_id()
-
-    @property
-    def updated_disk_model(self):
-        return self._disk_model()
-
-    @property
     def updated_user_sid(self):
         return self._user_sid()
 
+    # Network information
+    @property
+    def updated_local_ip(self):
+        return self._local_ip()
+
+    @property
+    def updated_public_ip(self):
+        return self._public_ip()
+
     @property
     def updated_wlan_guid(self):
-        return self.__wlan_guid
+        return self._wlan_info()['guid']
 
     @property
     def updated_wlan_physical_address(self):
@@ -276,6 +291,11 @@ class SystemInformation:
     @property
     def updated_wlan_bssid(self):
         return self._wlan_info()['bssid']
+
+    @property
+    def updated_computersystem_length(self):
+        return self._computersystem_length()
+
     # ---------------------
     # Data retrieval methods
     # ----------------------
@@ -287,7 +307,6 @@ class SystemInformation:
             c = wmi.WMI()
             for interface in c.Win32_NetworkAdapter():
                 if interface.NetEnabled:
-                    self.__mac = interface.MACAddress
                     return interface.MACAddress
 
             return "No wifi"
@@ -301,7 +320,6 @@ class SystemInformation:
             pythoncom.CoInitialize()
             c = wmi.WMI()
             for board in c.Win32_BaseBoard():
-                self.__motherboard = board.SerialNumber.strip()
                 return board.SerialNumber.strip()
             return None  # No board found
         except Exception as e:
@@ -314,7 +332,6 @@ class SystemInformation:
             pythoncom.CoInitialize()
             c = wmi.WMI()
             for bios in c.Win32_BIOS():
-                self.__bios = bios.SerialNumber.strip()
                 return bios.SerialNumber.strip()
             return None  # No BIOS information found
         except Exception as e:
@@ -327,7 +344,6 @@ class SystemInformation:
             pythoncom.CoInitialize()
             c = wmi.WMI()
             for disk in c.Win32_DiskDrive():
-                self.__disk_serial = disk.SerialNumber.strip()
                 return disk.SerialNumber.strip()
             return None  # No disk found
         except Exception as e:
@@ -348,7 +364,6 @@ class SystemInformation:
                     winreg.KEY_READ | winreg.KEY_WOW64_64KEY
             ) as registry_key:
                 value, _ = winreg.QueryValueEx(registry_key, value_name)
-                self.__machineguid = value
                 return value
         except Exception as e:
             self.logger.error(f"{ERROR} {{Machine GUID}}: {sys.exc_info()}")
@@ -360,7 +375,6 @@ class SystemInformation:
             pythoncom.CoInitialize()
             c = wmi.WMI()
             for csproduct in c.Win32_ComputerSystemProduct():
-                self.__uuid = csproduct.UUID
                 return csproduct.UUID
             return None  # No UUID found
         except Exception as e:
@@ -375,7 +389,6 @@ class SystemInformation:
             s.connect(("8.8.8.8", 80))
             ip = s.getsockname()[0]
             s.close()
-            self.__local_ip = ip
             return ip
         except Exception as e:
             self.logger.error(f"{ERROR} {{Local IP}}: {e}")
@@ -395,7 +408,6 @@ class SystemInformation:
                 try:
                     response = requests.get(service, timeout=5)
                     if response.status_code == 200:
-                        self.__public_ip = response.text.strip()
                         return response.text.strip()
                 except:
                     continue
@@ -422,7 +434,6 @@ class SystemInformation:
 
                 # Convert UNIX timestamp to formatted date string
                 install_date = datetime.datetime.fromtimestamp(install_date_timestamp)
-                self.__installdate = install_date.strftime("%Y%m%d%H%M%S")
                 return install_date.strftime("%Y%m%d%H%M%S")
         except Exception as e:
             self.logger.error(f"{ERROR} {{Install Date}}: {e}")
@@ -455,7 +466,6 @@ class SystemInformation:
                     try:
                         value, _ = winreg.QueryValueEx(registry_key, value_name)
                         if value and isinstance(value, str):
-                            self.__os_serial = value.strip()
                             return value.strip()
                     except:
                         continue
@@ -485,7 +495,6 @@ class SystemInformation:
                 fileSystemNameBuffer,
                 ctypes.sizeof(fileSystemNameBuffer)
             )
-            self.__volume_serial = str(serial_number.value)
             return str(serial_number.value)
         except Exception as e:
             self.logger.error(f"{ERROR} {{Volume Serial}}: {e}")
@@ -498,7 +507,6 @@ class SystemInformation:
             c = wmi.WMI()
             print(c.Win32_Processor())
             for processor in c.Win32_Processor():
-                self.__processor_id = processor.ProcessorId.strip()
                 return processor.ProcessorId.strip()
             return None  # No processor found
         except Exception as e:
@@ -511,6 +519,7 @@ class SystemInformation:
             pythoncom.CoInitialize()
             c = wmi.WMI()
             for disk in c.Win32_DiskDrive():
+
                 return disk.Model.strip()
             return None  # No disk found
         except Exception as e:
@@ -574,7 +583,6 @@ class SystemInformation:
             match = re.search(r"\b(S-1(?:-\d+)+)\s*$", output, re.MULTILINE)
 
             if match:
-                self.__user_sid = match.group(1)
                 return match.group(1)  # Return the captured SID
             else:
                 # self.logger.error the actual output if parsing fails
@@ -672,9 +680,6 @@ class SystemInformation:
             if self.logger.error_info:
                 self.logger.error(f"[INFO] {{WLAN Info}}: {', '.join(self.logger.error_info)}")
 
-            self.__wlan_bssid = wlan_info['bssid']
-            self.__wlan_physical_address = wlan_info['physical_address']
-            self.__wlan_guid = wlan_info['guid']
             return wlan_info
 
         except FileNotFoundError:
@@ -736,10 +741,6 @@ class SystemInformation:
                 if '=' in line:
                     property_name, value = line.strip().split('=', 1)
                     properties.append((property_name.strip(), value.strip()))
-            
-            # Store the properties array and its length
-            self.__computersystem_properties = properties
-            self.__computersystem_length = len(properties)
             
             return self.__computersystem_length
             

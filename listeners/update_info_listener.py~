@@ -21,6 +21,7 @@ class UpdateInfoListener:
         newInfo = self._sys_info.getAllUpdated()
         for oldKey, newKey in self._keys.items():
             if newKey in newInfo:
+                self._logger.debug(f"Key {oldKey} found in newInfo")
                 value = newInfo[newKey]
                 oldValue = self._oldInfo[oldKey]
                 if not oldValue: return # to prevent spam at start
