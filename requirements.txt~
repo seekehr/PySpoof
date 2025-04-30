@@ -1,6 +1,0 @@
-# Python package requirements for MyPCDetails
-pywin32>=305        # For pythoncom, Windows-specific functionality
-wmi>=1.5.1          # For Windows Management Instrumentation queries
-requests>=2.31.0    # For HTTP requests (public IP retrieval)
-colorama>=0.4.6     # For colored terminal output
-machineid>=0.6.0    # For machine identification

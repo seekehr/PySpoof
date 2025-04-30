@@ -1,1 +1,4 @@
-{}
+{
+    "output": "none",
+    "backup_path": "resources/backup"
+}
