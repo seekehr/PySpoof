@@ -202,8 +202,6 @@ async def start_interactive_cli(spoofer, sys_info): # Assuming spoofer object ha
                     logger.log("Available commands:")
                     logger.log(" mac     - Start the MAC address spoofing")
                     logger.log(" backup  - Create a registry backup")
-                    logger.log(" pause   - Pause system information listener")
-                    logger.log(" resume  - Resume system information listener")
                     logger.log(" info    - Show system information")
                     logger.log(" exit    - Exit the spoofing mode")
                 case "mac":

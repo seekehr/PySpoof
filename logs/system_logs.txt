@@ -15,11 +15,11 @@
 [32mOS Serial: [39m10361-02067-81592-D5
 [32mUser SID: [39mS-1-5-21-1103905739-3479899694-3139268737-1001
 [33m==============[95mNET[33m==============[39m
-[32mGeneral MAC: [39mCA:B8:80:C7:9C:E6
-[32mLocal IP: [39m192.168.100.161
+[32mGeneral MAC: [39m72:D9:1B:0C:78:2B
+[32mLocal IP: [39m192.168.100.162
 [32mPublic IP: [39m119.73.117.42
 [32mWLAN GUID: [39m39fb4fd8-51bb-4520-83a4-3e572a2d3b2e
-[32mWLAN Phys Addr: [39mCA-B8-80-C7-9C-E6
+[32mWLAN Phys Addr: [39m72-D9-1B-0C-78-2B
 [32mWLAN BSSID: [39m70-8C-B6-E3-4A-E8
 [33m==============[95mDISK[33m==============[39m
 [32mDisk Serial: [39mE823_8FA6_BF53_0001_001B_448B_474B_9D8D.
@@ -28,39 +28,39 @@
 
 
 
-Finished loading. Time: 4.336751222610474 seconds
+Finished loading. Time: 4.196012020111084 seconds
 
 [INFO]: Existing backup found at resources/backup.reg.[0m
 
 [INFO]: Searching for adapter key in registry...
 
-[INFO]: Found interface 'Intel(R) Wi-Fi 6 AX201 160MHz' for MAC address 'CA:B8:80:C7:9C:E6'
+[INFO]: Found interface 'Intel(R) Wi-Fi 6 AX201 160MHz' for MAC address '72:D9:1B:0C:78:2B'
 
 [INFO]: Matched interface 'Intel(R) Wi-Fi 6 AX201 160MHz' with registry key '0002'
 
 [INFO]: Spoofing MAC address...
 
-[INFO]: Found interface 'Intel(R) Wi-Fi 6 AX201 160MHz' for MAC address 'CA:B8:80:C7:9C:E6'
+[INFO]: Found interface 'Intel(R) Wi-Fi 6 AX201 160MHz' for MAC address '72:D9:1B:0C:78:2B'
 
-[INFO]: Successfully wrote new MAC '72-D9-1B-0C-78-2B' to registry under 0002
+[INFO]: Successfully wrote new MAC '96-32-43-57-3C-9A' to registry under 0002
 
-[INFO]: Total MAC spoofing operation took 1.72 seconds
+[INFO]: Total MAC spoofing operation took 1.81 seconds
 
-[INFO]: [32mOld MAC: [39mCA:B8:80:C7:9C:E6
+[INFO]: [32mOld MAC: [39m72:D9:1B:0C:78:2B
 
-[INFO]: [32mNew MAC: [39m72:d9:1b:0c:78:2b
+[INFO]: [32mNew MAC: [39m96:32:43:57:3c:9a
 
-[INFO]: [36mMAC spoofing completed in 1.719324 seconds[39m
+[INFO]: [36mMAC spoofing completed in 1.808050 seconds[39m
 
 [INFO]: WMI might take time to update.
 
-[INFO]: [33m [LISTENER] [39m Updated [95mmac[39m from [95mCA:B8:80:C7:9C:E6[39m to[33m No wifi[39m from [33mupdated_mac
+[INFO]: [33m [LISTENER] [39m Updated [95mmac[39m from [95m72:D9:1B:0C:78:2B[39m to[33m No wifi[39m from [33mupdated_mac
 
-[INFO]: [33m [LISTENER] [39m Updated [95mwlan_physical_address[39m from [95mCA-B8-80-C7-9C-E6[39m to[33m 72-D9-1B-0C-78-2B[39m from [33mupdated_wlan_physical_address
+[INFO]: [33m [LISTENER] [39m Updated [95mwlan_physical_address[39m from [95m72-D9-1B-0C-78-2B[39m to[33m 96-32-43-57-3C-9A[39m from [33mupdated_wlan_physical_address
 
-[INFO]: [33m [LISTENER] [39m Updated [95mlocal_ip[39m from [95m192.168.100.161[39m to[33m 192.168.100.162[39m from [33mupdated_local_ip
+[INFO]: [33m [LISTENER] [39m Updated [95mlocal_ip[39m from [95m192.168.100.162[39m to[33m 192.168.100.163[39m from [33mupdated_local_ip
 
-[INFO]: [33m [LISTENER] [39m Updated [95mmac[39m from [95mNo wifi[39m to[33m 72:D9:1B:0C:78:2B[39m from [33mupdated_mac
+[INFO]: [33m [LISTENER] [39m Updated [95mmac[39m from [95mNo wifi[39m to[33m 96:32:43:57:3C:9A[39m from [33mupdated_mac
 
 [33m==============[95mPC[33m==============[39m
 [32mHostname: [39mSecHex-GX4D6ZQ
@@ -75,11 +75,11 @@ Finished loading. Time: 4.336751222610474 seconds
 [32mOS Serial: [39m10361-02067-81592-D5
 [32mUser SID: [39mS-1-5-21-1103905739-3479899694-3139268737-1001
 [33m==============[95mNET[33m==============[39m
-[32mGeneral MAC: [39m72:D9:1B:0C:78:2B
-[32mLocal IP: [39m192.168.100.162
+[32mGeneral MAC: [39m96:32:43:57:3C:9A
+[32mLocal IP: [39m192.168.100.163
 [32mPublic IP: [39m119.73.117.42
 [32mWLAN GUID: [39m39fb4fd8-51bb-4520-83a4-3e572a2d3b2e
-[32mWLAN Phys Addr: [39m72-D9-1B-0C-78-2B
+[32mWLAN Phys Addr: [39m96-32-43-57-3C-9A
 [32mWLAN BSSID: [39m70-8C-B6-E3-4A-E8
 [33m==============[95mDISK[33m==============[39m
 [32mDisk Serial: [39mE823_8FA6_BF53_0001_001B_448B_474B_9D8D.
