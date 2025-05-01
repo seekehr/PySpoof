@@ -84,18 +84,17 @@ class Logger:
         with self._lock:
             self._logs.append("[DEBUG]: " + message + "\n")
         print(DEBUG + message)
-
-    def save(self):
-        threading.Thread(target=self._save_to_file, daemon=True).start()
+        
 
     def parse_raw_text(self, text: str):
-        return
-    def _save_to_file(self):
+        return text
+        
+    def save(self):
         with self._save_lock:
             try:
                 with open(self._path, 'w') as file:
                     for log in self._logs:
-                        file.write(parse_raw_text(log) + '\n')
+                        file.write(self.parse_raw_text(log) + '\n')
                 self.success(f"Logger file saved to {self._path}.")
             except IOError as e:
                 print(f"ERROR: Failed to save log file {self._path}: {e}")

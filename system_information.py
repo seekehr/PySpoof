@@ -505,7 +505,6 @@ class SystemInformation:
         try:
             pythoncom.CoInitialize()
             c = wmi.WMI()
-            print(c.Win32_Processor())
             for processor in c.Win32_Processor():
                 return processor.ProcessorId.strip()
             return None  # No processor found
@@ -742,6 +741,7 @@ class SystemInformation:
                     property_name, value = line.strip().split('=', 1)
                     properties.append((property_name.strip(), value.strip()))
             
+            self.__computersystem_length = len(properties)
             return self.__computersystem_length
             
         except FileNotFoundError:

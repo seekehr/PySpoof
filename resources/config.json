@@ -1,4 +1,5 @@
 {
-    "output": "none",
-    "backup_path": "resources/backup"
+    "output": "resources/output.txt",
+    "backup_path": "resources/backup",
+    "listen": "true"
 }

@@ -31,7 +31,6 @@ async def spoof_mac(logger, sysinfo: SystemInformation):
         random_values = generate_random_values()
         if random_values.get("mac"):
             new_mac = random_values.get("mac")
-            logger.debug(f"Generated new MAC: {new_mac}")
         else:
             logger.error("Failed to generate random MAC address")
             return False
@@ -39,7 +38,6 @@ async def spoof_mac(logger, sysinfo: SystemInformation):
         pythoncom.CoInitialize()
         c = wmi.WMI()
 
-        logger.debug("New Mac: " + new_mac)
         interface = None
         for connection in c.Win32_NetworkAdapter():
             if connection.MACAddress == current_mac:
@@ -61,15 +59,15 @@ async def spoof_mac(logger, sysinfo: SystemInformation):
 
                 # Disable the network adapter
                 disable_command = f'powershell -Command "Get-NetAdapter | Where-Object {{ $_.InterfaceDescription -eq \\"{interface}\\" }} | Disable-NetAdapter -Confirm:$false"'
-                logger.debug(f"Executing disable command: {disable_command}")
+                logger.debug(f"Executing disable command")
                 subprocess.run(disable_command, shell=True, check=True)
-                logger.debug(f"Disabled interface with description '{interface}'")
+                logger.debug(f"Disabled interface with description'")
 
                 # Enable the network adapter after changing the MAC address
                 enable_command = f'powershell -Command "Get-NetAdapter | Where-Object {{ $_.InterfaceDescription -eq \\"{interface}\\" }} | Enable-NetAdapter -Confirm:$false"'
                 logger.debug(f"Executing enable command: {enable_command}")
                 subprocess.run(enable_command, shell=True, check=True)
-                logger.debug(f"Enabled interface with description '{interface}'")
+                logger.debug(f"Enabled interface with description")
 
                 await update_network(interface, new_mac)
                 logger.debug("Successfully updated WMI for MAC.")
