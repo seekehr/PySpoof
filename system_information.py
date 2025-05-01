@@ -119,6 +119,22 @@ class SystemInformation:
 
         return output_str
 
+    def update(self):
+        """Update all values with their updated counterparts"""
+        try:
+            updated_values = self.getAllUpdated()
+            
+            for updated_key, updated_value in updated_values.items():
+                base_key = updated_key[8:] 
+                
+                # Set the base value using mangled name format
+                mangled_name = f"_{self.__class__.__name__}__{base_key}"
+                if hasattr(self, mangled_name):
+                    setattr(self, mangled_name, updated_value)
+                    
+        except Exception as e:
+            self.logger.error(f"Error updating values: {e}", sys.exc_info())
+
     def getAll(self):
         results = {}
         prefix = f"_{self.__class__.__name__}__"  # Dynamically get class name and prefix
@@ -213,7 +229,7 @@ class SystemInformation:
         return self.__wlan_bssid
 
     @property
-    def computer_length(self):
+    def computersystem_length(self):
         return self.__computersystem_length
 
     # Hardware
@@ -443,7 +459,6 @@ class SystemInformation:
         """Get system hostname"""
         try:
             name = socket.gethostname()
-            self.__hostname = name
             return name
         except Exception as e:
             self.logger.error(f"{ERROR} {{Hostname}}: {e}")
@@ -740,9 +755,7 @@ class SystemInformation:
                 if '=' in line:
                     property_name, value = line.strip().split('=', 1)
                     properties.append((property_name.strip(), value.strip()))
-            
-            self.__computersystem_length = len(properties)
-            return self.__computersystem_length
+            return len(properties)
             
         except FileNotFoundError:
             self.logger.error(f"{ERROR} {{ComputerSystem}}: WMIC command not found. Ensure it is in the system PATH.")

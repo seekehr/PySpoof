@@ -105,7 +105,6 @@ async def listenHandleArgs(args, sys_info) -> Thread | None:
     if listen:
         logger.debug("Starting listener thread")
         listener = UpdateInfoListener(sys_info, logger)
-        listener.init()
         thread = threading.Thread(target=listener.run, daemon=True)
         thread._listener = listener  # Store listener instance as an attribute of the thread
         thread.start()
@@ -118,13 +117,13 @@ async def main():
     global thread
     sys_info = SystemInformation(logger)
     info = sys_info.get()
+    sys_info.update()
     try:
         args = await handle_args(sys_info, logger)
 
         logger.log(info)
         
         tasks = []
-
         # Check if listener thread was created during handle_args
         if thread is not None:
             async def monitor_thread():

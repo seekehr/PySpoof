@@ -10,18 +10,15 @@ class UpdateInfoListener:
         self._logger = logger
         self._oldInfo = {}
         self._running = True
-
+        self._oldInfo = self._sys_info.getAll()
         self._keys = {}
         self._oldValues = {}
-       
-    def init(self):
-        self._oldInfo = self._sys_info.getAll()
+
         for key in self._oldInfo.keys():
             self._keys[key] = "updated_" + key
             self._oldValues[key] = getattr(self._sys_info, f"_SystemInformation__{key}")
-
-            print(self._oldValues)
-
+       
+        
     def stop(self):
         self._running = False
 
@@ -31,10 +28,13 @@ class UpdateInfoListener:
             if newKey in newInfo:
                 value = newInfo[newKey]
                 oldValue = self._oldInfo[oldKey]
-                if not oldValue: return # to prevent spam at start
-                if oldValue != value:
+                
+                # Only update and log if both values exist and are different
+                if oldValue is not None and value is not None and oldValue != value:
                     setattr(self._sys_info, f"_SystemInformation__{oldKey}", value)
                     self._logger.inform(f"Updated {oldKey} from {oldValue} to {value}")
+                    # Update old info for future comparisons
+                    self._oldInfo[oldKey] = value
             else:
                 self._logger.debug(f"Key {oldKey} not found in newInfo")
         self._logger.debug("Running listener...")
