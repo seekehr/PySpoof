@@ -157,7 +157,7 @@ async def main():
 # ==== Spoofer =====
 async def start_interactive_cli(spoofer, sys_info): # Assuming spoofer object has methods create_registry_backup and spoof_mac
     logger.debug("Starting interactive CLI")
-    input_msg = f"{Fore.CYAN}Spoofing CLI> {Style.RESET_ALL}"
+    input_msg = f"{Fore.CYAN}Spoofing CLI> {Style.RESET_ALL}\n"
     try:
         backup = False
         # Check if the backup file exists
@@ -215,7 +215,8 @@ async def start_interactive_cli(spoofer, sys_info): # Assuming spoofer object ha
                         oldMac = sys_info.mac
                         spoof_task = asyncio.create_task(spoofer.spoof_mac())
                         try:
-                            sys_info.suppress_wlan_errors = True
+                            sys_info.supress_lan_errors = True
+                            logger.debug(f"Suppressed lan errors.")
                             result = await asyncio.wait_for(spoof_task, timeout=15)
                             if result:
                                 logger.inform(f"{Fore.GREEN}Old MAC: {Fore.RESET}{oldMac}")
@@ -224,8 +225,6 @@ async def start_interactive_cli(spoofer, sys_info): # Assuming spoofer object ha
                                 time_taken = end_time_mac - start_time_mac
                                 logger.inform(f"{Fore.CYAN}MAC spoofing completed in {time_taken:2f} seconds{Fore.RESET}")
                                 logger.inform("WMI might take time to update.")
-                                logger.debug(f"suppress_wlan_errors: {sys_info.suppress_wlan_errors}")
-                                sys_info.suppress_wlan_errors = False
                         except asyncio.TimeoutError:
                             logger.error("MAC spoofing operation timed out after 15 seconds")
                     except Exception as e:
@@ -235,7 +234,10 @@ async def start_interactive_cli(spoofer, sys_info): # Assuming spoofer object ha
                         if thread.listener.is_paused():
                             thread.listener.resume()
                             print("Resuming listener")
-                        print(f"{Fore.CYAN}Spoofing CLI> {Style.RESET_ALL}", end="")
+                        await asyncio.sleep(3)
+                        sys_info.supress_lan_errors = False
+                        logger.debug(f"Unuppressed lan errors.")
+                        print(input_msg)
                 case "backup":
                     if not thread.listener.is_paused():
                         print("Pausing listener")
@@ -263,7 +265,7 @@ async def start_interactive_cli(spoofer, sys_info): # Assuming spoofer object ha
     except Exception as e:
         logger.error(f"{ERROR}Error found during spoofing:{Style.RESET_ALL}", sys.exc_info())
 
-
+# todo: fix state of sysinfo supresss wlan
 def cleanup_function():
     global thread
     if thread and hasattr(thread, '_listener'):

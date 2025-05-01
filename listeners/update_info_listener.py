@@ -52,7 +52,7 @@ class UpdateInfoListener:
             try:
                 if not self._paused:
                     self._check()
-                    time.sleep(2)
+                    time.sleep(1)
             except KeyboardInterrupt:
                 self._logger.inform(f"Listener exiting...")
                 self._running = False

@@ -67,7 +67,7 @@ class SystemInformation:
         self.logger = logger
         
         # Flag to suppress WLAN errors during update after MAC spoofing
-        self.suppress_wlan_errors = False
+        self.supress_lan_errors = False
 
         # Mark the instance as initialized
         self.initialized = True
@@ -402,7 +402,6 @@ class SystemInformation:
 
     def _local_ip(self):
         """Get local IP address"""
-        print(f"suppress_wlan_errors: {self.suppress_wlan_errors}")
         try:
             # Create a dummy connection to get local IP
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -414,13 +413,13 @@ class SystemInformation:
                 return ip
             except socket.error as e:
                 # Log error if not suppressing
-                if not self.suppress_wlan_errors:
+                if not self.supress_lan_errors:
                     self.logger.error(f"{{Local IP}}: {e}")
                 return None
             finally:
                 s.close()
         except Exception as e:
-            if not self.suppress_wlan_errors:
+            if not self.supress_lan_errors:
                 self.logger.error(f"{{Local IP}}: {e}")
             return None
 
@@ -444,7 +443,7 @@ class SystemInformation:
 
             return None  # All services failed
         except Exception as e:
-            if not self.suppress_wlan_errors:
+            if not self.supress_lan_errors:
                 self.logger.error(f"{{Public IP}}: {e}")
             return None
 
@@ -665,7 +664,7 @@ class SystemInformation:
                     except UnicodeDecodeError:
                         continue
                 
-                if not self.suppress_wlan_errors:        
+                if not self.supress_lan_errors:        
                     self.logger.error(f"{ERROR} {{WLAN Info}}: 'netsh wlan show interfaces' failed. Code: {process.returncode}. Stderr: {stderr_decoded or '(undecodable)'}")
                 return wlan_info
 
@@ -678,7 +677,7 @@ class SystemInformation:
                     continue
 
             if not output_decoded:
-                if not self.suppress_wlan_errors:
+                if not self.supress_lan_errors:
                     self.logger.error(f"{ERROR} {{WLAN Info}}: Could not decode 'netsh' output.")
                 return wlan_info
             
@@ -708,17 +707,17 @@ class SystemInformation:
                 self.logger.error_info.append("Could not find WLAN BSSID (likely not connected).")
 
             # Log any missing information
-            if self.logger.error_info and not self.suppress_wlan_errors:
+            if self.logger.error_info and not self.supress_lan_errors:
                 self.logger.error(f"[INFO] {{WLAN Info}}: {', '.join(self.logger.error_info)}")
 
             return wlan_info
 
         except FileNotFoundError:
-            if not self.suppress_wlan_errors:
+            if not self.supress_lan_errors:
                 self.logger.error(f"{ERROR} {{WLAN Info}}: 'netsh' command not found. Ensure it is in the system PATH.")
             return wlan_info
         except Exception as e:
-            if not self.suppress_wlan_errors:
+            if not self.supress_lan_errors:
                 self.logger.error(f"{ERROR} {{WLAN Info}}: Unexpected error: {e}")
             return wlan_info
 
