@@ -2,7 +2,7 @@
 
 [INFO]: Listener enabled by config
 
-[DEBUG]: Starting listener thread
+[DEBUG]: Debug mode enabled
 
 [33m==============[95mPC[33m==============[39m
 [32mHostname: [39mSecHex-GX4D6ZQ
@@ -17,11 +17,11 @@
 [32mOS Serial: [39m10361-02067-81592-D5
 [32mUser SID: [39mS-1-5-21-1103905739-3479899694-3139268737-1001
 [33m==============[95mNET[33m==============[39m
-[32mGeneral MAC: [39mBA:BD:5E:17:35:A3
-[32mLocal IP: [39m192.168.100.119
+[32mGeneral MAC: [39m66:F2:B5:07:EC:21
+[32mLocal IP: [39m192.168.100.155
 [32mPublic IP: [39m119.73.117.42
 [32mWLAN GUID: [39m39fb4fd8-51bb-4520-83a4-3e572a2d3b2e
-[32mWLAN Phys Addr: [39mBA-BD-5E-17-35-A3
+[32mWLAN Phys Addr: [39m66-F2-B5-07-EC-21
 [32mWLAN BSSID: [39m70-8C-B6-E3-4A-E8
 [33m==============[95mDISK[33m==============[39m
 [32mDisk Serial: [39mE823_8FA6_BF53_0001_001B_448B_474B_9D8D.
@@ -29,17 +29,70 @@
 [32mDisk Model: [39mNVMe WD PC SN740 SDDPNQD-512G-1002
 
 
+
+Finished loading. Time: 5.581068515777588 seconds
+
 [DEBUG]: Starting interactive CLI
 
 [INFO]: Existing backup found at resources/backup.reg.[0m
 
-[DEBUG]: Running listener...
+[DEBUG]: SystemInformation.suppress_wlan_errors changed from False to True
 
-[DEBUG]: Running listener...
+[INFO]: Searching for adapter key in registry...
 
-[DEBUG]: Running listener...
+[INFO]: Found interface 'Intel(R) Wi-Fi 6 AX201 160MHz' for MAC address '66:F2:B5:07:EC:21'
 
-[DEBUG]: Running listener...
+[INFO]: Matched interface 'Intel(R) Wi-Fi 6 AX201 160MHz' with registry key '0002'
+
+[INFO]: Spoofing MAC address...
+
+[DEBUG]: New formatted MAC: 76-BC-A8-72-72-E8
+
+[INFO]: Found interface 'Intel(R) Wi-Fi 6 AX201 160MHz' for MAC address '66:F2:B5:07:EC:21'
+
+[INFO]: Successfully wrote new MAC '76-BC-A8-72-72-E8' to registry under 0002
+
+[DEBUG]: Registry update took 0.00 seconds
+
+[DEBUG]: Using adapter name: Wi-Fi
+
+[DEBUG]: Executing disable command: netsh interface set interface "Wi-Fi" admin=disable
+
+[DEBUG]: Disabled interface
+
+[DEBUG]: Disable operation took 0.97 seconds
+
+[DEBUG]: Executing enable command: netsh interface set interface "Wi-Fi" admin=enable
+
+[DEBUG]: Enabled interface
+
+[DEBUG]: Enable operation took 0.65 seconds
+
+[DEBUG]: MAC address spoofing complete - Windows will update WMI cache automatically
+
+[INFO]: Total MAC spoofing operation took 1.99 seconds
+
+[INFO]: [32mOld MAC: [39m66:F2:B5:07:EC:21
+
+[INFO]: [32mNew MAC: [39m76:bc:a8:72:72:e8
+
+[INFO]: [36mMAC spoofing completed in 2.063132 seconds[39m
+
+[INFO]: WMI might take time to update.
+
+[DEBUG]: suppress_wlan_errors: True
+
+[DEBUG]: SystemInformation.suppress_wlan_errors changed from True to False
+
+[ERROR] {Local IP}: [WinError 10051] A socket operation was attempted to an unreachable network
+
+[INFO]: [33m [LISTENER] [39m Updated [95mmac[39m from [95m66:F2:B5:07:EC:21[39m to[33m No wifi[39m from [33mupdated_mac
+
+[INFO]: [33m [LISTENER] [39m Updated [95mwlan_physical_address[39m from [95m66-F2-B5-07-EC-21[39m to[33m 76-BC-A8-72-72-E8[39m from [33mupdated_wlan_physical_address
+
+[ERROR] {Local IP}: [WinError 10051] A socket operation was attempted to an unreachable network
+
+[INFO]: [33m [LISTENER] [39m Updated [95mmac[39m from [95mNo wifi[39m to[33m 76:BC:A8:72:72:E8[39m from [33mupdated_mac
 
 [INFO]: Exiting program...
 

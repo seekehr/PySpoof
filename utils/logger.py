@@ -11,8 +11,7 @@ Thread safe logger
 class Logger:
     _instance = None
     _lock = threading.Lock()
-
-    def __new__(cls, path, debug=True):
+    def __new__(cls, path, debug=False):
         # Use the class-level lock to ensure thread-safe instance creation
         with cls._lock:
             if cls._instance is None:
@@ -27,8 +26,11 @@ class Logger:
                 cls._instance._save_lock = threading.Lock()
         return cls._instance
 
-    def __init__(self, path):
+    def __init__(self, path, debug=False):
         pass
+
+    def setDebug(self, debug: bool):
+        self._debug = debug
 
     def log(self, message: str):
         with self._lock:

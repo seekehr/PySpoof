@@ -28,7 +28,7 @@ def is_admin():
     try:
         return ctypes.windll.shell32.IsUserAnAdmin()
     except Exception as e:
-        logger.error(f"{ERROR} while loading: {e}", sys.exc_info())
+        logger.error(f"while loading: {e}", sys.exc_info())
         exit(1)
 
 if not is_admin():
@@ -55,6 +55,7 @@ async def handle_args(sys_info, logger) -> Namespace:
     parser.add_argument('--o', action='store_true', help="Enable saving output to the default file (output.txt)")
     parser.add_argument('--spoof', action='store_true', help="Run in spoofer mode")
     parser.add_argument("--listen", action="store_true", help="Enable listening for system information updates")
+    parser.add_argument("--debug", action="store_true", help="Enable debug mode")
     args = parser.parse_args()
     default_output_filename = "resources/output.txt"
 
@@ -62,7 +63,7 @@ async def handle_args(sys_info, logger) -> Namespace:
     tasks.append(outputHandleArgs(args, sys_info))
     tasks.append(listenHandleArgs(args, sys_info))
     tasks.append(spoofHandleArgs(args, sys_info))
-
+    tasks.append(handleDebugArgs(args))
     if tasks:
         await asyncio.gather(*tasks)
 
@@ -106,10 +107,17 @@ async def listenHandleArgs(args, sys_info) -> Thread | None:
         logger.debug("Starting listener thread")
         listener = UpdateInfoListener(sys_info, logger)
         thread = threading.Thread(target=listener.run, daemon=True)
-        thread._listener = listener  # Store listener instance as an attribute of the thread
+        thread.listener = listener  # Store listener instance as an attribute of the thread
         thread.start()
         return thread
     return None
+
+async def handleDebugArgs(args):
+    global logger
+    if args.debug:
+        print("hiiiiii")
+        logger.setDebug(True)
+        logger.debug("Debug mode enabled")
 
 # ==== Main ==== (bro im so sweepy) #
 async def main():
@@ -138,9 +146,8 @@ async def main():
 
         # Run all tasks concurrently
         if tasks:
+            logger.log("\nFinished loading. Time: " + str(time.time() - start_time) + " seconds")
             await asyncio.gather(*tasks)
-        
-        logger.log("\nFinished loading. Time: " + str(time.time() - start_time) + " seconds")
 
     except Exception as e:
         logger.inform(f"{ERROR}: {e}")
@@ -150,6 +157,7 @@ async def main():
 # ==== Spoofer =====
 async def start_interactive_cli(spoofer, sys_info): # Assuming spoofer object has methods create_registry_backup and spoof_mac
     logger.debug("Starting interactive CLI")
+    input_msg = f"{Fore.CYAN}Spoofing CLI> {Style.RESET_ALL}"
     try:
         backup = False
         # Check if the backup file exists
@@ -160,7 +168,6 @@ async def start_interactive_cli(spoofer, sys_info): # Assuming spoofer object ha
         else:
              logger.warn(f"No existing backup found at {backup_path}. Please create a backup before spoofing.{Style.RESET_ALL}")
 
-
         # Queue in the main thread
         input_queue = queue.Queue()
         
@@ -170,7 +177,7 @@ async def start_interactive_cli(spoofer, sys_info): # Assuming spoofer object ha
         def input_reader():
             while run_input:
                 try:
-                    line = input(f"{Fore.CYAN}Spoofing CLI> {Style.RESET_ALL}")
+                    line = input(input_msg)
                     input_queue.put(line.lower())
                 except EOFError:
                     break
@@ -195,50 +202,61 @@ async def start_interactive_cli(spoofer, sys_info): # Assuming spoofer object ha
                     logger.log("Available commands:")
                     logger.log(" mac     - Start the MAC address spoofing")
                     logger.log(" backup  - Create a registry backup")
+                    logger.log(" pause   - Pause system information listener")
+                    logger.log(" resume  - Resume system information listener")
+                    logger.log(" info    - Show system information")
                     logger.log(" exit    - Exit the spoofing mode")
                 case "mac":
-                    if not backup:
-                        logger.warn(f"Backup not created! Run 'backup' command first.{Style.RESET_ALL}")
-                        continue
-                    # Assuming spoofer.spoof_mac() is an async operation if the cli is async
-                    # If not, you might need await spoofer.spoof_mac() if spoof_mac is an awaitable
-                    oldMac = sys_info.mac
-                    result = await spoofer.spoof_mac()
-                    if result:
-                        logger.log(f"{Fore.GREEN}Old MAC: {Fore.RESET}{oldMac}")
-                        logger.log(f"{Fore.GREEN}New MAC: {Fore.RESET}{sys_info.updated_mac}")
-                        mac_monitoring_active = True
-                        mac_check_time = time.time()
-                        while mac_monitoring_active:
-                            # Check for any commands in the queue that might stop monitoring
-                            try:
-                                cmd = input_queue.get_nowait()
-                                if cmd == "exit" or cmd == "stop":
-                                    mac_monitoring_active = False
-                                    logger.inform("Stopping MAC monitoring")
-                            except queue.Empty:
-                                # No command to stop, continue monitoring
-                                pass
-                                
-                            # Only update MAC display every 3 seconds
-                            current_time = time.time()
-                            if current_time - mac_check_time >= 3:
-                                logger.log("MAC: " + sys_info.mac)
-                                mac_check_time = current_time
-                                
-                            # Yield to other tasks
-                            await asyncio.sleep(0.1)
+                    if not thread.listener.is_paused():
+                        print("Pausing listener")
+                        thread.listener.pause()
+                    try:
+                        start_time_mac = time.time()
+                        oldMac = sys_info.mac
+                        spoof_task = asyncio.create_task(spoofer.spoof_mac())
+                        try:
+                            sys_info.suppress_wlan_errors = True
+                            result = await asyncio.wait_for(spoof_task, timeout=15)
+                            if result:
+                                logger.inform(f"{Fore.GREEN}Old MAC: {Fore.RESET}{oldMac}")
+                                logger.inform(f"{Fore.GREEN}New MAC: {Fore.RESET}{result}")
+                                end_time_mac = time.time()
+                                time_taken = end_time_mac - start_time_mac
+                                logger.inform(f"{Fore.CYAN}MAC spoofing completed in {time_taken:2f} seconds{Fore.RESET}")
+                                logger.inform("WMI might take time to update.")
+                                logger.debug(f"suppress_wlan_errors: {sys_info.suppress_wlan_errors}")
+                                sys_info.suppress_wlan_errors = False
+                        except asyncio.TimeoutError:
+                            logger.error("MAC spoofing operation timed out after 15 seconds")
+                    except Exception as e:
+                        logger.error(f"Error during MAC spoofing: {e}")
+                    finally:
+                        # Always resume the listener, even if there was an error
+                        if thread.listener.is_paused():
+                            thread.listener.resume()
+                            print("Resuming listener")
+                        print(f"{Fore.CYAN}Spoofing CLI> {Style.RESET_ALL}", end="")
                 case "backup":
-                    logger.inform(f"{Fore.YELLOW}Creating registry backup...{Style.RESET_ALL}")
-                    # Assuming spoofer.create_registry_backup() is an async operation
-                    # If not, you might need await spoofer.create_registry_backup() if create_registry_backup is an awaitable
-                    spoofer.create_registry_backup()
-                    backup = True
-                    logger.inform(f"{SUCCESS}Backup created successfully.{Style.RESET_ALL}")
+                    if not thread.listener.is_paused():
+                        print("Pausing listener")
+                        thread.listener.pause()
+                    try:
+                        logger.inform(f"{Fore.YELLOW}Creating registry backup...{Style.RESET_ALL}")
+                        spoofer.create_registry_backup()
+                        backup = True
+                        logger.inform(f"{SUCCESS}Backup created successfully.{Style.RESET_ALL}")
+                    except Exception as e:
+                        logger.error(f"Error creating backup: {e}")
+                    finally:
+                        # Always resume the listener, even if there was an error
+                        if thread.listener.is_paused():
+                            thread.listener.resume()
+                            print("Resuming listener")
+                        print(f"{Fore.CYAN}Spoofing CLI> {Style.RESET_ALL}", end="")
                 case "info":
                     logger.log(sys_info.get())
                 case _:  # Wildcard case for any other input
-                    logger.error(f"{ERROR} Unknown command: {command}{Style.RESET_ALL}")
+                    logger.error(f"Unknown command: {command}{Style.RESET_ALL}")
     except asyncio.CancelledError:
         logger.inform(f"Exiting program...")
         raise

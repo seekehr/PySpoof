@@ -65,6 +65,9 @@ class SystemInformation:
 
         # Status flag
         self.logger = logger
+        
+        # Flag to suppress WLAN errors during update after MAC spoofing
+        self.suppress_wlan_errors = False
 
         # Mark the instance as initialized
         self.initialized = True
@@ -115,7 +118,7 @@ class SystemInformation:
                         self.updated_volume_serial or "Invalid Volume Serial") + "\n"
             output_str += Fore.GREEN + "Disk Model: " + Fore.RESET + (self.updated_disk_model or "Invalid Disk Model") + "\n"
         except Exception as e:
-            output_str += f"{ERROR} Could not self.logger.error. Error: {e}" + "\n"
+            output_str += f"Could not self.logger.error. Error: {e}" + "\n"
 
         return output_str
 
@@ -327,7 +330,7 @@ class SystemInformation:
 
             return "No wifi"
         except Exception as e:
-            self.logger.error(f"{ERROR} {{MAC}}: {e}")
+            self.logger.error(f"{{MAC}}: {e}")
             return None
 
     def _motherboard(self):
@@ -339,7 +342,7 @@ class SystemInformation:
                 return board.SerialNumber.strip()
             return None  # No board found
         except Exception as e:
-            self.logger.error(f"{ERROR} {{Motherboard}}: {e}", sys.exc_info())
+            self.logger.error(f"{{Motherboard}}: {e}", sys.exc_info())
             return None
 
     def _bios(self):
@@ -351,7 +354,7 @@ class SystemInformation:
                 return bios.SerialNumber.strip()
             return None  # No BIOS information found
         except Exception as e:
-            self.logger.error(f"{ERROR} {{BIOS}}: {e}")
+            self.logger.error(f"{{BIOS}}: {e}")
             return None
 
     def _disk_serial(self):
@@ -363,7 +366,7 @@ class SystemInformation:
                 return disk.SerialNumber.strip()
             return None  # No disk found
         except Exception as e:
-            self.logger.error(f"{ERROR} {{Disk Serial}}: {e}")
+            self.logger.error(f"{{Disk Serial}}: {e}")
             return None
 
     def _machine_guid(self):
@@ -382,7 +385,7 @@ class SystemInformation:
                 value, _ = winreg.QueryValueEx(registry_key, value_name)
                 return value
         except Exception as e:
-            self.logger.error(f"{ERROR} {{Machine GUID}}: {sys.exc_info()}")
+            self.logger.error(f"{{Machine GUID}}: {sys.exc_info()}")
             return None
 
     def _uuid(self):
@@ -394,20 +397,31 @@ class SystemInformation:
                 return csproduct.UUID
             return None  # No UUID found
         except Exception as e:
-            self.logger.error(f"{ERROR} {{UUID}}: {e}")
+            self.logger.error(f"{{UUID}}: {e}")
             return None
 
     def _local_ip(self):
         """Get local IP address"""
+        print(f"suppress_wlan_errors: {self.suppress_wlan_errors}")
         try:
             # Create a dummy connection to get local IP
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            s.connect(("8.8.8.8", 80))
-            ip = s.getsockname()[0]
-            s.close()
-            return ip
+            try:
+                s.settimeout(0.5)  # Short timeout to avoid hanging
+                s.connect(("8.8.8.8", 80))
+                ip = s.getsockname()[0]
+                s.close()
+                return ip
+            except socket.error as e:
+                # Log error if not suppressing
+                if not self.suppress_wlan_errors:
+                    self.logger.error(f"{{Local IP}}: {e}")
+                return None
+            finally:
+                s.close()
         except Exception as e:
-            self.logger.error(f"{ERROR} {{Local IP}}: {e}")
+            if not self.suppress_wlan_errors:
+                self.logger.error(f"{{Local IP}}: {e}")
             return None
 
     def _public_ip(self):
@@ -422,7 +436,7 @@ class SystemInformation:
 
             for service in services:
                 try:
-                    response = requests.get(service, timeout=5)
+                    response = requests.get(service, timeout=2)  # Shorter timeout for faster response
                     if response.status_code == 200:
                         return response.text.strip()
                 except:
@@ -430,7 +444,8 @@ class SystemInformation:
 
             return None  # All services failed
         except Exception as e:
-            self.logger.error(f"{ERROR} {{Public IP}}: {e}")
+            if not self.suppress_wlan_errors:
+                self.logger.error(f"{{Public IP}}: {e}")
             return None
 
     def _install_date(self):
@@ -452,7 +467,7 @@ class SystemInformation:
                 install_date = datetime.datetime.fromtimestamp(install_date_timestamp)
                 return install_date.strftime("%Y%m%d%H%M%S")
         except Exception as e:
-            self.logger.error(f"{ERROR} {{Install Date}}: {e}")
+            self.logger.error(f"{{Install Date}}: {e}")
             return None
 
     def _hostname(self):
@@ -461,7 +476,7 @@ class SystemInformation:
             name = socket.gethostname()
             return name
         except Exception as e:
-            self.logger.error(f"{ERROR} {{Hostname}}: {e}")
+            self.logger.error(f"{{Hostname}}: {e}")
             return None
 
     def _os_serial(self):
@@ -486,7 +501,7 @@ class SystemInformation:
                         continue
                 return None  # No valid value found
         except Exception as e:
-            self.logger.error(f"{ERROR} {{OS Serial}}: {e}")
+            self.logger.error(f"{{OS Serial}}: {e}")
             return None
 
     def _volumeserial(self):
@@ -512,7 +527,7 @@ class SystemInformation:
             )
             return str(serial_number.value)
         except Exception as e:
-            self.logger.error(f"{ERROR} {{Volume Serial}}: {e}")
+            self.logger.error(f"{{Volume Serial}}: {e}")
             return None
 
     def _processor_id(self):
@@ -524,7 +539,7 @@ class SystemInformation:
                 return processor.ProcessorId.strip()
             return None  # No processor found
         except Exception as e:
-            self.logger.error(f"{ERROR} {{Processor ID}}: {e}")
+            self.logger.error(f"{{Processor ID}}: {e}")
             return None
 
     def _disk_model(self):
@@ -537,7 +552,7 @@ class SystemInformation:
                 return disk.Model.strip()
             return None  # No disk found
         except Exception as e:
-            self.logger.error(f"{ERROR} {{Disk Model}}: {e}")
+            self.logger.error(f"{{Disk Model}}: {e}")
             return None
 
     def _user_sid(self):
@@ -577,7 +592,7 @@ class SystemInformation:
                 if not stderr_decoded:
                     error_message += " (Could not decode stderr)."
                     
-                self.logger.error(f"{ERROR} {{User SID}}: {error_message}")
+                self.logger.error(f"{{User SID}}: {error_message}")
                 return None
 
             # Try to decode stdout with various encodings
@@ -590,7 +605,7 @@ class SystemInformation:
                     continue
 
             if output is None:
-                self.logger.error(f"{ERROR} {{User SID}}: Could not decode 'whoami /user' output with tried encodings.")
+                self.logger.error(f"{{User SID}}: Could not decode 'whoami /user' output with tried encodings.")
                 return None
 
             # Use regex to find the SID (S-1 followed by digits and hyphens)
@@ -600,14 +615,14 @@ class SystemInformation:
                 return match.group(1)  # Return the captured SID
             else:
                 # self.logger.error the actual output if parsing fails
-                self.logger.error(f"{ERROR} {{User SID}}: Could not parse SID from 'whoami /user' output:\n---\n{output}\n---")
+                self.logger.error(f"{{User SID}}: Could not parse SID from 'whoami /user' output:\n---\n{output}\n---")
                 return None
 
         except FileNotFoundError:
-            self.logger.error(f"{ERROR} {{User SID}}: 'whoami' command not found. Ensure it is in the system PATH.")
+            self.logger.error(f"{{User SID}}: 'whoami' command not found. Ensure it is in the system PATH.")
             return None
         except Exception as e:
-            self.logger.error(f"{ERROR} {{User SID}}: Unexpected error: {e}")
+            self.logger.error(f"{{User SID}}: Unexpected error: {e}")
             return None
 
     def _wlan_info(self):
@@ -649,8 +664,9 @@ class SystemInformation:
                         break
                     except UnicodeDecodeError:
                         continue
-                        
-                self.logger.error(f"{ERROR} {{WLAN Info}}: 'netsh wlan show interfaces' failed. Code: {process.returncode}. Stderr: {stderr_decoded or '(undecodable)'}")
+                
+                if not self.suppress_wlan_errors:        
+                    self.logger.error(f"{ERROR} {{WLAN Info}}: 'netsh wlan show interfaces' failed. Code: {process.returncode}. Stderr: {stderr_decoded or '(undecodable)'}")
                 return wlan_info
 
             # Try to decode stdout with various encodings
@@ -662,7 +678,8 @@ class SystemInformation:
                     continue
 
             if not output_decoded:
-                self.logger.error(f"{ERROR} {{WLAN Info}}: Could not decode 'netsh' output.")
+                if not self.suppress_wlan_errors:
+                    self.logger.error(f"{ERROR} {{WLAN Info}}: Could not decode 'netsh' output.")
                 return wlan_info
             
             # Use regex to extract WLAN interface information
@@ -690,17 +707,19 @@ class SystemInformation:
                 # BSSID is often missing if not connected
                 self.logger.error_info.append("Could not find WLAN BSSID (likely not connected).")
 
-            # self.logger.error any missing information
-            if self.logger.error_info:
+            # Log any missing information
+            if self.logger.error_info and not self.suppress_wlan_errors:
                 self.logger.error(f"[INFO] {{WLAN Info}}: {', '.join(self.logger.error_info)}")
 
             return wlan_info
 
         except FileNotFoundError:
-            self.logger.error(f"{ERROR} {{WLAN Info}}: 'netsh' command not found. Ensure it is in the system PATH.")
+            if not self.suppress_wlan_errors:
+                self.logger.error(f"{ERROR} {{WLAN Info}}: 'netsh' command not found. Ensure it is in the system PATH.")
             return wlan_info
         except Exception as e:
-            self.logger.error(f"{ERROR} {{WLAN Info}}: Unexpected error: {e}")
+            if not self.suppress_wlan_errors:
+                self.logger.error(f"{ERROR} {{WLAN Info}}: Unexpected error: {e}")
             return wlan_info
 
     def _computersystem_length(self):
@@ -724,7 +743,7 @@ class SystemInformation:
             # Check for command failure
             if process.returncode != 0:
 
-                self.logger.error(f"{ERROR} {{ComputerSystem}}: WMIC command failed with return code {process.returncode}")
+                self.logger.error(f"{{ComputerSystem}}: WMIC command failed with return code {process.returncode}")
                 return None
                 
             # Try various encodings to decode the output
@@ -758,8 +777,8 @@ class SystemInformation:
             return len(properties)
             
         except FileNotFoundError:
-            self.logger.error(f"{ERROR} {{ComputerSystem}}: WMIC command not found. Ensure it is in the system PATH.")
+            self.logger.error(f"{{ComputerSystem}}: WMIC command not found. Ensure it is in the system PATH.")
             return None
         except Exception as e:
-            self.logger.error(f"{ERROR} {{ComputerSystem}}: Unexpected error: {e}")
+            self.logger.error(f"{{ComputerSystem}}: Unexpected error: {e}")
             return None
