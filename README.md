@@ -2,6 +2,8 @@
 
 A utility for viewing and spoofing PC hardware and software information.
 
+### NOT WIP anymore. Spoofing the BIOS and other information is annoying on your PC and I did not feel like using a VM so this project is delayed/indefinitely archived 
+
 ## System Information Checklist
 
 ### PC Hardware Identifiers
