@@ -1,91 +1,40 @@
-[INFO]: Output saving enabled by config. Using output file: resources/output.txt
+ Output saving enabled by config. Using output file: resources/output.txt
 
-[INFO]: Listener enabled by config
+ Listener enabled by config
 
-[33m==============[95mPC[33m==============[39m
-[32mHostname: [39mSecHex-GX4D6ZQ
-[32mProcessor ID: [39mBFEBFBFF000906A3
-[32mUUID: [39m479B2D2D-E804-CB47-BA81-C5CB1787069F
-[32mMotherboard: [39mS311NRCX0031FAMB
-[32mBIOS: [39mS3NRCX01L007116
-[32mMachine GUID: [39m3320u086-n007-x982-c057-u2544m18
-[32mComputerSystem Properties Count: [39m53
-[33m==============[95mPC[33m==============[39m
-[32mWindows installed: [39m2024-12-13 16:29:31 || 20241213162931
-[32mOS Serial: [39m10361-02067-81592-D5
-[32mUser SID: [39mS-1-5-21-1103905739-3479899694-3139268737-1001
-[33m==============[95mNET[33m==============[39m
-[32mGeneral MAC: [39m72:D9:1B:0C:78:2B
-[32mLocal IP: [39m192.168.100.162
-[32mPublic IP: [39m119.73.117.42
-[32mWLAN GUID: [39m39fb4fd8-51bb-4520-83a4-3e572a2d3b2e
-[32mWLAN Phys Addr: [39m72-D9-1B-0C-78-2B
-[32mWLAN BSSID: [39m70-8C-B6-E3-4A-E8
-[33m==============[95mDISK[33m==============[39m
-[32mDisk Serial: [39mE823_8FA6_BF53_0001_001B_448B_474B_9D8D.
-[32mVolume Serial: [39m1446379651
-[32mDisk Model: [39mNVMe WD PC SN740 SDDPNQD-512G-1002
-
-
-
-Finished loading. Time: 4.196012020111084 seconds
-
-[INFO]: Existing backup found at resources/backup.reg.[0m
-
-[INFO]: Searching for adapter key in registry...
-
-[INFO]: Found interface 'Intel(R) Wi-Fi 6 AX201 160MHz' for MAC address '72:D9:1B:0C:78:2B'
-
-[INFO]: Matched interface 'Intel(R) Wi-Fi 6 AX201 160MHz' with registry key '0002'
-
-[INFO]: Spoofing MAC address...
-
-[INFO]: Found interface 'Intel(R) Wi-Fi 6 AX201 160MHz' for MAC address '72:D9:1B:0C:78:2B'
-
-[INFO]: Successfully wrote new MAC '96-32-43-57-3C-9A' to registry under 0002
-
-[INFO]: Total MAC spoofing operation took 1.81 seconds
-
-[INFO]: [32mOld MAC: [39m72:D9:1B:0C:78:2B
-
-[INFO]: [32mNew MAC: [39m96:32:43:57:3c:9a
-
-[INFO]: [36mMAC spoofing completed in 1.808050 seconds[39m
-
-[INFO]: WMI might take time to update.
-
-[INFO]: [33m [LISTENER] [39m Updated [95mmac[39m from [95m72:D9:1B:0C:78:2B[39m to[33m No wifi[39m from [33mupdated_mac
-
-[INFO]: [33m [LISTENER] [39m Updated [95mwlan_physical_address[39m from [95m72-D9-1B-0C-78-2B[39m to[33m 96-32-43-57-3C-9A[39m from [33mupdated_wlan_physical_address
-
-[INFO]: [33m [LISTENER] [39m Updated [95mlocal_ip[39m from [95m192.168.100.162[39m to[33m 192.168.100.163[39m from [33mupdated_local_ip
-
-[INFO]: [33m [LISTENER] [39m Updated [95mmac[39m from [95mNo wifi[39m to[33m 96:32:43:57:3C:9A[39m from [33mupdated_mac
-
-[33m==============[95mPC[33m==============[39m
-[32mHostname: [39mSecHex-GX4D6ZQ
-[32mProcessor ID: [39mBFEBFBFF000906A3
-[32mUUID: [39m479B2D2D-E804-CB47-BA81-C5CB1787069F
-[32mMotherboard: [39mS311NRCX0031FAMB
-[32mBIOS: [39mS3NRCX01L007116
-[32mMachine GUID: [39m3320u086-n007-x982-c057-u2544m18
-[32mComputerSystem Properties Count: [39m53
-[33m==============[95mPC[33m==============[39m
-[32mWindows installed: [39m2024-12-13 16:29:31 || 20241213162931
-[32mOS Serial: [39m10361-02067-81592-D5
-[32mUser SID: [39mS-1-5-21-1103905739-3479899694-3139268737-1001
-[33m==============[95mNET[33m==============[39m
-[32mGeneral MAC: [39m96:32:43:57:3C:9A
-[32mLocal IP: [39m192.168.100.163
-[32mPublic IP: [39m119.73.117.42
-[32mWLAN GUID: [39m39fb4fd8-51bb-4520-83a4-3e572a2d3b2e
-[32mWLAN Phys Addr: [39m96-32-43-57-3C-9A
-[32mWLAN BSSID: [39m70-8C-B6-E3-4A-E8
-[33m==============[95mDISK[33m==============[39m
-[32mDisk Serial: [39mE823_8FA6_BF53_0001_001B_448B_474B_9D8D.
-[32mVolume Serial: [39m1446379651
-[32mDisk Model: [39mNVMe WD PC SN740 SDDPNQD-512G-1002
+==============PC==============
+Hostname: PC-264629
+Processor ID: BFEBFBFF000906A3
+UUID: 479B2D2D-E804-CB47-BA81-C5CB1787069F
+Motherboard: S311NRCX0031FAMB
+BIOS: S3NRCX01L007116
+Machine GUID: 3320u086-n007-x982-c057-u2544m18
+ComputerSystem Properties Count: 53
+==============PC==============
+Windows installed: 2024-12-13 16:29:31 || 20241213162931
+OS Serial: 10361-02067-81592-D5
+User SID: S-1-5-21-1103905739-3479899694-3139268737-1001
+==============NET==============
+General MAC: 9E:5E:42:28:53:6F
+Local IP: 192.168.100.154
+Public IP: 154.57.217.128
+WLAN GUID: 39fb4fd8-51bb-4520-83a4-3e572a2d3b2e
+WLAN Phys Addr: 9E-5E-42-28-53-6F
+WLAN BSSID: 70-8C-B6-E3-4A-E8
+==============DISK==============
+Disk Serial: E823_8FA6_BF53_0001_001B_448B_474B_9D8D.
+Volume Serial: 1446379651
+Disk Model: NVMe WD PC SN740 SDDPNQD-512G-1002
 
 
-[INFO]: Exiting program...
+
+Finished loading. Time: 4.183340787887573 seconds
+
+ Existing backup found at resources/backup.reg.
+
+ Exiting program...
+
+ Exited program...
+
+ Config saved to resources/config.json
 

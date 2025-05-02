@@ -5,7 +5,7 @@ A utility for viewing and spoofing PC hardware and software information.
 ## System Information Checklist
 
 ### PC Hardware Identifiers
-- [ ] Hostname
+- [x] Hostname
 - [x] MAC Address
 - [ ] Motherboard Serial Number
 - [ ] BIOS Serial Number

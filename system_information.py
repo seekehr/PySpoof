@@ -72,6 +72,11 @@ class SystemInformation:
         # Mark the instance as initialized
         self.initialized = True
 
+    def isSuppressLanErrors(self):
+        return self.supress_lan_errors
+    def setSuppressLanErrors(self, value: bool):
+        self.supress_lan_errors = value
+
     def get(self):
         output_str = ""
         try:
@@ -472,10 +477,12 @@ class SystemInformation:
     def _hostname(self):
         """Get system hostname"""
         try:
-            name = socket.gethostname()
-            return name
+            reg_path = r"SYSTEM\CurrentControlSet\Control\ComputerName\ActiveComputerName"
+            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, reg_path, 0, winreg.KEY_READ) as key:
+                active_name, _ = winreg.QueryValueEx(key, "ComputerName")
+            return active_name
         except Exception as e:
-            self.logger.error(f"{{Hostname}}: {e}")
+            self.logger.error(f"Error reading active computer name", sys.exc_info())
             return None
 
     def _os_serial(self):

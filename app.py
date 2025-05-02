@@ -18,6 +18,7 @@ from colorama import init
 from config import Config
 from listeners.update_info_listener import UpdateInfoListener
 from spoofers.spoofer import Spoofer
+from spoofers.verify_spoof import verify_spoof_hostname
 from system_information import SystemInformation
 from utils.formats import ERROR, SUCCESS
 from utils.logger import Logger
@@ -49,27 +50,24 @@ config = Config(logger)
 output = False
 spoofing = False
 thread: Thread|None = None
+default_output_filename = "resources/output.txt"
 
-async def handle_args(sys_info, logger) -> Namespace:
+async def handle_args(sys_info) -> Namespace:
     parser = argparse.ArgumentParser(description="Process some flags.")
     parser.add_argument('--o', action='store_true', help="Enable saving output to the default file (output.txt)")
     parser.add_argument('--spoof', action='store_true', help="Run in spoofer mode")
     parser.add_argument("--listen", action="store_true", help="Enable listening for system information updates")
     parser.add_argument("--debug", action="store_true", help="Enable debug mode")
     args = parser.parse_args()
-    default_output_filename = "resources/output.txt"
 
-    tasks = []
-    tasks.append(outputHandleArgs(args, sys_info))
-    tasks.append(listenHandleArgs(args, sys_info))
-    tasks.append(spoofHandleArgs(args, sys_info))
-    tasks.append(handleDebugArgs(args))
+    tasks = [outputHandleArgs(args), listenHandleArgs(args, sys_info), spoofHandleArgs(args),
+             handleDebugArgs(args)]
     if tasks:
         await asyncio.gather(*tasks)
 
     return args
 
-async def outputHandleArgs(args, sys_info: SystemInformation):
+async def outputHandleArgs(args)-> None:
     if args.o:
         config.set("output", default_output_filename)
         logger.inform(f"Output saving enabled by --o flag. Output will be saved to: {default_output_filename}")
@@ -82,7 +80,7 @@ async def outputHandleArgs(args, sys_info: SystemInformation):
             config.save()
             logger.inform(f"Output disabled by config. Initialised confing using output file: {default_output_filename}")
 
-async def spoofHandleArgs(args, sys_info: SystemInformation):
+async def spoofHandleArgs(args) -> None:
     global spoofing
     if args.spoof:
         spoofing = True
@@ -115,7 +113,6 @@ async def listenHandleArgs(args, sys_info) -> Thread | None:
 async def handleDebugArgs(args):
     global logger
     if args.debug:
-        print("hiiiiii")
         logger.setDebug(True)
         logger.debug("Debug mode enabled")
 
@@ -127,7 +124,7 @@ async def main():
     info = sys_info.get()
     sys_info.update()
     try:
-        args = await handle_args(sys_info, logger)
+        await handle_args(sys_info)
 
         logger.log(info)
         
@@ -155,15 +152,16 @@ async def main():
 
 
 # ==== Spoofer =====
-async def start_interactive_cli(spoofer, sys_info): # Assuming spoofer object has methods create_registry_backup and spoof_mac
+async def start_interactive_cli(spoofer, sys_info):
+    if not thread or not hasattr(thread, 'listener'):
+        return
+    # Assuming spoofer object has methods create_registry_backup and spoof_mac
     logger.debug("Starting interactive CLI")
     input_msg = f"{Fore.CYAN}Spoofing CLI> {Style.RESET_ALL}\n"
     try:
-        backup = False
         # Check if the backup file exists
         backup_path = config.get("backup_path") + ".reg"
         if backup_path and os.path.exists(backup_path):
-            backup = True
             logger.inform(f"Existing backup found at {backup_path}.{Style.RESET_ALL}")
         else:
              logger.warn(f"No existing backup found at {backup_path}. Please create a backup before spoofing.{Style.RESET_ALL}")
@@ -184,7 +182,38 @@ async def start_interactive_cli(spoofer, sys_info): # Assuming spoofer object ha
         
         input_thread = threading.Thread(target=input_reader, daemon=True)
         input_thread.start()
-        
+
+        async def _spoof_hostname_local():
+            logger.inform("Spoofing hostname.")
+            newHostname = spoofer.spoof_hostname(sys_info.hostname, thread)
+            if newHostname:
+                logger.success(f"New hostname: {newHostname}")
+                logger.inform("Verifying hostname change...")
+                if verify_spoof_hostname(newHostname):
+                    logger.success(f"Hostname spoofed successfully to {newHostname}")
+                    logger.inform("Restart your PC to see effects.")
+                else:
+                    logger.error("Hostname spoofing failed????")
+            else:
+                logger.error("Failed to spoof hostname.")
+
+        async def _spoof_mac_local():
+            start_time_mac = time.time()
+            oldMac = sys_info.mac
+            spoof_task = asyncio.create_task(spoofer.spoof_mac(thread))
+            try:
+                result = await asyncio.wait_for(spoof_task, timeout=15)
+                if result:
+                    logger.inform(f"{Fore.GREEN}Old MAC: {Fore.RESET}{oldMac}")
+                    logger.inform(f"{Fore.GREEN}New MAC: {Fore.RESET}{result}")
+
+                    end_time_mac = time.time()
+                    time_taken = end_time_mac - start_time_mac
+                    logger.inform(f"{Fore.CYAN}MAC spoofing completed in {time_taken:2f} seconds{Fore.RESET}")
+                    logger.inform("WMI might take time to update.")
+            except asyncio.TimeoutError:
+                logger.error("MAC spoofing operation timed out after 15 seconds")
+
         while True:
             try:
                 command = input_queue.get_nowait()
@@ -204,55 +233,28 @@ async def start_interactive_cli(spoofer, sys_info): # Assuming spoofer object ha
                     logger.log(" backup  - Create a registry backup")
                     logger.log(" info    - Show system information")
                     logger.log(" exit    - Exit the spoofing mode")
-                case "mac":
-                    if not thread.listener.is_paused():
-                        print("Pausing listener")
-                        thread.listener.pause()
+
+                case "hostname":
                     try:
-                        start_time_mac = time.time()
-                        oldMac = sys_info.mac
-                        spoof_task = asyncio.create_task(spoofer.spoof_mac())
-                        try:
-                            sys_info.supress_lan_errors = True
-                            logger.debug(f"Suppressed lan errors.")
-                            result = await asyncio.wait_for(spoof_task, timeout=15)
-                            if result:
-                                logger.inform(f"{Fore.GREEN}Old MAC: {Fore.RESET}{oldMac}")
-                                logger.inform(f"{Fore.GREEN}New MAC: {Fore.RESET}{result}")
-                                end_time_mac = time.time()
-                                time_taken = end_time_mac - start_time_mac
-                                logger.inform(f"{Fore.CYAN}MAC spoofing completed in {time_taken:2f} seconds{Fore.RESET}")
-                                logger.inform("WMI might take time to update.")
-                        except asyncio.TimeoutError:
-                            logger.error("MAC spoofing operation timed out after 15 seconds")
+                        await _spoof_hostname_local()
+                    except Exception as e:
+                        logger.error(f"Error during hostname spoofing.", sys.exc_info())
+                    finally:
+                        print(input_msg)
+                case "mac":
+                    try:
+                        await _spoof_mac_local()
                     except Exception as e:
                         logger.error(f"Error during MAC spoofing: {e}")
                     finally:
-                        # Always resume the listener, even if there was an error
-                        if thread.listener.is_paused():
-                            thread.listener.resume()
-                            print("Resuming listener")
-                        await asyncio.sleep(3)
-                        sys_info.supress_lan_errors = False
-                        logger.debug(f"Unuppressed lan errors.")
                         print(input_msg)
                 case "backup":
-                    if not thread.listener.is_paused():
-                        print("Pausing listener")
-                        thread.listener.pause()
                     try:
                         logger.inform(f"{Fore.YELLOW}Creating registry backup...{Style.RESET_ALL}")
                         spoofer.create_registry_backup()
-                        backup = True
                         logger.inform(f"{SUCCESS}Backup created successfully.{Style.RESET_ALL}")
                     except Exception as e:
                         logger.error(f"Error creating backup: {e}")
-                    finally:
-                        # Always resume the listener, even if there was an error
-                        if thread.listener.is_paused():
-                            thread.listener.resume()
-                            print("Resuming listener")
-                        print(f"{Fore.CYAN}Spoofing CLI> {Style.RESET_ALL}", end="")
                 case "info":
                     logger.log(sys_info.get())
                 case _:  # Wildcard case for any other input
@@ -265,12 +267,11 @@ async def start_interactive_cli(spoofer, sys_info): # Assuming spoofer object ha
 
 # todo: fix state of sysinfo supresss wlan
 def cleanup_function():
-    global thread
-    if thread and hasattr(thread, '_listener'):
-        thread._listener.stop()
-    logger.save()
-    config.save()
+    if thread and hasattr(thread, 'listener'):
+        thread.listener.stop()
     logger.inform(f"Exited program...")
+    config.save()
+    logger.save()
 
 atexit.register(cleanup_function)
 

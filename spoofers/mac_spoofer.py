@@ -16,19 +16,22 @@ from utils.generator import generate_random_values
 adapter_base_key = r'SYSTEM\CurrentControlSet\Control\Class\{4d36e972-e325-11ce-bfc1-08002be10318}'
 
 
-async def spoof_mac(logger, sysinfo: SystemInformation):
+async def spoof_mac(logger, sys_info: SystemInformation):
     """
     Attempts to spoof the MAC address of the network adapter.
     """
     total_start = time.time()
 
-    key = find_adapter_key(logger, sysinfo)
+    if not sys_info.supress_lan_errors:
+        sys_info.supress_lan_errors = True
+        logger.debug(f"Suppressed lan errors.")
+    key = find_adapter_key(logger, sys_info)
     if not key.startswith('000'):
         logger.error(f"Could not find adapter key in registry.")
         return None
     try:
         logger.inform(f"Spoofing MAC address...")
-        current_mac = sysinfo.mac
+        current_mac = sys_info.mac
         random_values = generate_random_values()
         if random_values.get("mac"):
             new_mac = random_values.get("mac")
@@ -123,17 +126,22 @@ async def spoof_mac(logger, sysinfo: SystemInformation):
 
     except Exception as e:
         logger.error(f"{ERROR}Failed to spoof MAC address.", sys.exc_info())
+    finally:
+        await asyncio.sleep(3)
+        if sys_info.supress_lan_errors:
+            sys_info.supress_lan_errors = False
+            logger.debug(f"Restored lan errors.")
 
     return None
 
-def find_adapter_key(logger, sysinfo: SystemInformation):
+def find_adapter_key(logger, sys_info: SystemInformation):
     """
     Finds the adapter key in the registry corresponding to the current MAC address.
     """
     try:
         logger.inform("Searching for adapter key in registry...")
 
-        current_mac = sysinfo.mac
+        current_mac = sys_info.mac
         pythoncom.CoInitialize()
         c = wmi.WMI()
 

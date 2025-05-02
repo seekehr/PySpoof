@@ -1,4 +1,11 @@
 import sys
+import threading
+import winreg
+from os import mkdir
+
+import wmi
+
+from listeners.update_info_listener import UpdateInfoListener
 from spoofers import mac_spoofer
 from utils.generator import generate_random_values
 from utils.formats import *
@@ -7,6 +14,22 @@ import os
 from system_information import SystemInformation
 from utils.logger import Logger
 from config import Config
+
+def pause_listener(func):
+    def wrapper(*args, **kwargs):
+        for arg in args:
+            if isinstance(arg, threading.Thread):
+                listener = getattr(arg, 'listener', None)
+                if isinstance(listener, UpdateInfoListener):
+                    listener.pause()
+                try:
+                    result = func(*args, **kwargs)
+                    return result
+                finally:
+                    if listener:
+                        listener.resume()
+    return wrapper
+
 
 class Spoofer:
     def __init__(self, sys_info: SystemInformation, logger: Logger, config: Config):
@@ -63,9 +86,34 @@ class Spoofer:
 
             # We can also get the filename if needed
             file_name = tb.tb_frame.f_code.co_filename
-            print(f"An error occurred in {file_name}, line {line_number}: {str(e)}")
             self._logger.error(f"Failed to create registry backup.", sys.exc_info())
             return False
 
-    def spoof_mac(self):
+    @pause_listener
+    def spoof_hostname(self, oldName, thread: threading.Thread):
+        new_hostname = generate_random_values()["hostname"]
+        try:
+            # Open registry key for computer name
+            reg_key_path = r"SYSTEM\CurrentControlSet\Control\ComputerName\ComputerName"
+            key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, reg_key_path, 0, winreg.KEY_WRITE)
+
+            # Change the computer name in the registry
+            winreg.SetValueEx(key, "ComputerName", 0, winreg.REG_SZ, new_hostname)
+            winreg.CloseKey(key)
+
+            # Also change the ActiveComputerName value
+            reg_key_path_active = r"SYSTEM\CurrentControlSet\Control\ComputerName\ActiveComputerName"
+            key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, reg_key_path_active, 0, winreg.KEY_WRITE)
+            winreg.SetValueEx(key, "ActiveComputerName", 0, winreg.REG_SZ, new_hostname)
+            winreg.CloseKey(key)
+            return new_hostname
+
+        except Exception as e:
+            # Log the error with full exception details
+            self._logger.error(f"Error occurred while changing hostname: {e}", sys.exc_info())
+        return None
+
+
+    @pause_listener
+    def spoof_mac(self, thread: threading.Thread):
         return mac_spoofer.spoof_mac(self._logger, self._sys_info)

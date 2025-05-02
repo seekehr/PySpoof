@@ -27,7 +27,7 @@ class Logger:
         return cls._instance
 
     def __init__(self, path, debug=False):
-        pass
+        self._debug = False
 
     def setDebug(self, debug: bool):
         self._debug = debug
@@ -39,64 +39,82 @@ class Logger:
 
     def inform(self, message: str):
         with self._lock:
-            self._logs.append("[INFO]: " + message + "\n")
+            self._logs.append(" " + message + "\n")
         print(INFO + message)
 
+    import traceback
+
     def warn(self, message: str,
-              err: tuple[Type[BaseException], BaseException, TracebackType] | tuple[None, None, None] | None = None):
+             err: tuple[Type[BaseException], BaseException, TracebackType] | tuple[None, None, None] | None = None):
         log_message = message
         if err is not None:
+            log_message = " " + message
             exc_type, exc_obj, tb = err
+
+            # Extract details from the traceback object
             line_number = tb.tb_lineno
             file_name = tb.tb_frame.f_code.co_filename
-            if isinstance(err,
-                          Exception): log_message += f".. Exception: {str(exc_obj)} at line {line_number} in {file_name}"
 
-        string = "[WARNING] " + message
+            # The exception is in exc_obj, and it's already an instance of Exception (or its subclass)
+            if isinstance(exc_obj, Exception):
+                log_message += f".. Exception: {str(exc_obj)} at line {line_number} in {file_name}"
+
+        string = " " + message
         if err:
-            string += f". Exception: {str(err)}"
+            # Use exc_obj to format the error string instead of the whole tuple
+            exc_type, exc_obj, tb = err
+            string += f". Exception: {str(exc_obj)}"
+
+        # Assuming you have a lock and a log list for thread-safety
         with self._lock:
             self._logs.append(string + "\n")
+
+        # Print the log message
         print(WARNING + log_message)
 
-    def error(self, message: str, err:  tuple[Type[BaseException], BaseException, TracebackType] | tuple[None, None, None]|None = None):
-        log_message = message
+    def error(self, message: str,
+              err: tuple[Type[BaseException], BaseException, TracebackType] | tuple[None, None, None] | None = None):
+        log_message = " "
         if err is not None:
-            log_message = "[WARN]: " + message
+            log_message = message
             exc_type, exc_obj, tb = err
+
+            # Extract details from the traceback object
             line_number = tb.tb_lineno
             file_name = tb.tb_frame.f_code.co_filename
-            if isinstance(err,
-                          Exception): log_message += f".. Exception: {str(exc_obj)} at line {line_number} in {file_name}"
-        unformattedLogMsg = "[ERROR] " + message
-        if err:
-            unformattedLogMsg += f"Exception: {str(err)}"
-        with self._lock:
-            self._logs.append(unformattedLogMsg + "\n")
 
+            # The exception is in exc_obj, and it's already an instance of Exception (or its subclass)
+            if isinstance(exc_obj, Exception):
+                log_message += f".. Exception: {str(exc_obj)} at line {line_number} in {file_name}"
+                print("Exception details captured")
+
+        else:
+            log_message = " " + message
+
+        # Assuming you have a lock and a log list for thread-safety
+        with self._lock:
+            self._logs.append(log_message + "\n")
+
+        # Print the log message
         print(ERROR + log_message)
 
     def success(self, message: str):
         with self._lock:
-            self._logs.append("[SUCCESS]: " + message + "\n")
+            self._logs.append(" " + message + "\n")
         print(SUCCESS + message)
 
     def debug(self, message: str):
         if not self._debug: return
         with self._lock:
-            self._logs.append("[DEBUG]: " + message + "\n")
+            self._logs.append(" " + message + "\n")
         print(DEBUG + message)
-        
-
-    def parse_raw_text(self, text: str):
-        return text
         
     def save(self):
         with self._save_lock:
             try:
                 with open(self._path, 'w') as file:
                     for log in self._logs:
-                        file.write(self.parse_raw_text(log) + '\n')
+                        file.write(parse_raw_text(log) + '\n')
                 self.success(f"Logger file saved to {self._path}.")
             except IOError as e:
                 print(f"ERROR: Failed to save log file {self._path}: {e}")
