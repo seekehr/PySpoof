@@ -1,6 +1,6 @@
  Output saving enabled by config. Using output file: resources/output.txt
 
- Listener enabled by config
+ Config saved to resources/config.json
 
 ==============PC==============
 Hostname: PC-264629
@@ -28,9 +28,15 @@ Disk Model: NVMe WD PC SN740 SDDPNQD-512G-1002
 
 
 
-Finished loading. Time: 4.183340787887573 seconds
+Finished loading. Time: 4.184132099151611 seconds
 
  Existing backup found at resources/backup.reg.
+
+ mofcomp failed with exit code 3: None
+
+ Failed to spoof BIOS serial number in WMI.
+
+ Failed to spoof motherboard.
 
  Exiting program...
 

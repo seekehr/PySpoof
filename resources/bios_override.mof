@@ -1,0 +1,5 @@
+#pragma namespace("\\\\.\\ROOT\\CIMV2")
+instance of Win32_BIOS
+{
+    SerialNumber = "12345678";
+};

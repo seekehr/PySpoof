@@ -1,12 +1,16 @@
+import shutil
 import sys
+import tempfile
 import threading
+import time
 import winreg
 from os import mkdir
 
+import pythoncom
 import wmi
 
 from listeners.update_info_listener import UpdateInfoListener
-from spoofers import mac_spoofer
+from spoofers import mac_spoofer, motherboard_spoof
 from utils.generator import generate_random_values
 from utils.formats import *
 import subprocess
@@ -41,10 +45,15 @@ class Spoofer:
     def create_registry_backup(self):
         """Create a backup of the registry before making any changes"""
         try:
-            errors = 0
             backup_path = "../resources/backup.reg"
             if self._config.has("backup_path"):
-                backup_path = self._config.get("backup_path") + ".reg"
+                backup_path = self._config.get("backup_path")
+                if not backup_path.lower().endswith('.reg'):
+                    backup_path += ".reg"
+
+            # Ensure directory exists
+            backup_dir = os.path.dirname(backup_path)
+            os.makedirs(backup_dir, exist_ok=True)
 
             self._logger.inform(f"Creating registry backup at {backup_path}...")
 
@@ -55,39 +64,79 @@ class Spoofer:
                 r"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\SystemInformation",
                 r"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\ComputerName",
                 r"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters",
-                r"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces"
+                r"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces",
+                r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Cryptography",
+                r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate",
+                r"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\IDConfigDB",
+                r"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Enum\ACPI",
+                r"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Enum\PCI",
+                r"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Enum\USB",
+                r"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters",
+                r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Setup",
+                r"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Class\{4d36e972-e325-11ce-bfc1-08002be10318}",
+                r"HKEY_LOCAL_MACHINE\SYSTEM\MountedDevices"
             ]
 
-            # Create the backup using reg.exe
-            for key in keys_to_backup:
-                command = f'reg export "{key}" "{backup_path}" /y'
-                process = subprocess.run(command, shell=True, capture_output=True, text=True)
+            # Create a temporary directory for individual exports
+            temp_dir = tempfile.mkdtemp()
+            success_count = 0
+            errors = 0
+            failed_keys = []
 
-                if process.returncode != 0:
-                    errors += 1
-                    self._logger.warn(f"Failed to backup {key}: {process.stderr}")
+            try:
+                # Export each key to a temporary file
+                for key in keys_to_backup:
+                    # Create a safe filename from the registry key
+                    key_name = key.replace('\\', '_').replace(':', '')
+                    temp_file = os.path.join(temp_dir, f"{key_name}.reg")
+
+                    command = f'reg export "{key}" "{temp_file}" /y'
+                    process = subprocess.run(command, shell=True, capture_output=True, text=True)
+
+                    if process.returncode != 0:
+                        errors += 1
+                        failed_keys.append(key)
+                        self._logger.warn(f"Failed to backup {key}: {process.stderr}")
+                    else:
+                        success_count += 1
+                        self._logger.success(f"Backed up {key}")
+
+                # Combine all temporary files into one
+                with open(backup_path, 'wb') as outfile:
+                    # Write registry header
+                    outfile.write(b'Windows Registry Editor Version 5.00\n\n')
+
+                    # Append content from each successful export, skipping their headers
+                    for key in keys_to_backup:
+                        if key not in failed_keys:
+                            key_name = key.replace('\\', '_').replace(':', '')
+                            temp_file = os.path.join(temp_dir, f"{key_name}.reg")
+
+                            with open(temp_file, 'rb') as infile:
+                                # Skip the first two lines (header)
+                                infile.readline()  # Windows Registry Editor Version 5.00
+                                infile.readline()  # Empty line
+
+                                # Copy the rest of the file
+                                outfile.write(b'\n')
+                                outfile.write(infile.read())
+
+                if errors == 0:
+                    self._logger.success(f"Registry backup created successfully at {backup_path}")
+                    return True
                 else:
-                    self._logger.success(f"Backed up {key}")
+                    self._logger.warn(
+                        f"Registry backup completed with {errors} errors. {success_count} keys were backed up.")
+                    return True  # Still returning true as partial backup is better than none
 
-            if errors > 0: # todo
-                with open(backup_path + ".reg", "w") as f:
-                    f.write("")
-                self._logger.success(f"Registry backup created at {backup_path}")
-            else:
-                self._logger.error(f"Failed to create registry backup.")
+            finally:
+                # Clean up temporary files
+                shutil.rmtree(temp_dir, ignore_errors=True)
 
-            return True
         except Exception as e:
-            exc_type, exc_obj, tb = sys.exc_info()
-
-            # The traceback object 'tb' contains information about the error location
-            # tb.tb_lineno gives the line number where the exception occurred
-            line_number = tb.tb_lineno
-
-            # We can also get the filename if needed
-            file_name = tb.tb_frame.f_code.co_filename
-            self._logger.error(f"Failed to create registry backup.", sys.exc_info())
+            self._logger.error(f"Failed to create registry backup: {str(e)}", sys.exc_info())
             return False
+
 
     @pause_listener
     def spoof_hostname(self, oldName, thread: threading.Thread):
@@ -113,6 +162,9 @@ class Spoofer:
             self._logger.error(f"Error occurred while changing hostname: {e}", sys.exc_info())
         return None
 
+    @pause_listener
+    def spoof_motherboard(self, thread: threading.Thread):
+        return motherboard_spoof.spoof_motherboard(self._logger)
 
     @pause_listener
     def spoof_mac(self, thread: threading.Thread):

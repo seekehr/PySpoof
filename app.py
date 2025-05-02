@@ -18,7 +18,7 @@ from colorama import init
 from config import Config
 from listeners.update_info_listener import UpdateInfoListener
 from spoofers.spoofer import Spoofer
-from spoofers.verify_spoof import verify_spoof_hostname
+from spoofers.verify_spoof import verify_spoof_hostname, verify_spoof_motherboard
 from system_information import SystemInformation
 from utils.formats import ERROR, SUCCESS
 from utils.logger import Logger
@@ -197,6 +197,19 @@ async def start_interactive_cli(spoofer, sys_info):
             else:
                 logger.error("Failed to spoof hostname.")
 
+        async def _spoof_motherboard_local():
+            result = spoofer.spoof_motherboard(thread)
+            if result:
+                logger.inform("Motherboard spoofed. Verifying values...")
+                verified = verify_spoof_motherboard(result)
+                if verified:
+                    logger.success("Motherboard spoofed successfully. New serial: " + result)
+                    logger.inform("Restart your PC to see effects.")
+                else:
+                    logger.error("Failed to verify spoofed motherboard.")
+            else:
+                logger.error("Failed to spoof motherboard.")
+
         async def _spoof_mac_local():
             start_time_mac = time.time()
             oldMac = sys_info.mac
@@ -241,6 +254,13 @@ async def start_interactive_cli(spoofer, sys_info):
                         logger.error(f"Error during hostname spoofing.", sys.exc_info())
                     finally:
                         print(input_msg)
+                case "motherboard":
+                    try:
+                        await _spoof_motherboard_local()
+                    except Exception as e:
+                        logger.error(f"Error during motherboard spoofing.", sys.exc_info())
+                    finally:
+                        print(input_msg)
                 case "mac":
                     try:
                         await _spoof_mac_local()
@@ -254,7 +274,7 @@ async def start_interactive_cli(spoofer, sys_info):
                         spoofer.create_registry_backup()
                         logger.inform(f"{SUCCESS}Backup created successfully.{Style.RESET_ALL}")
                     except Exception as e:
-                        logger.error(f"Error creating backup: {e}")
+                        logger.error(f"Error creating backup. ", sys.exc_info())
                 case "info":
                     logger.log(sys_info.get())
                 case _:  # Wildcard case for any other input

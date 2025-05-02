@@ -1,0 +1,26 @@
+
+BiosCharacteristics={7,11,12,15,16,17,19,40,42,43}
+BuildNumber=
+CodeSet=
+CurrentLanguage=en|US|iso8859-1
+Description=FX507ZC4.312
+IdentificationCode=
+InstallableLanguages=1
+InstallDate=
+LanguageEdition=
+ListOfLanguages={"en|US|iso8859-1"}
+Manufacturer=American Megatrends International, LLC.
+Name=FX507ZC4.312
+OtherTargetOS=
+PrimaryBIOS=TRUE
+ReleaseDate=20241203000000.000000+000
+SerialNumber=S3NRCX01L007116
+SMBIOSBIOSVersion=FX507ZC4.312
+SMBIOSMajorVersion=3
+SMBIOSMinorVersion=5
+SMBIOSPresent=TRUE
+SoftwareElementID=FX507ZC4.312
+SoftwareElementState=3
+Status=OK
+TargetOperatingSystem=0
+Version=_ASUS_ - 1072009

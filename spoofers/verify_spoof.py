@@ -1,4 +1,6 @@
 import winreg
+import subprocess
+import sys
 
 def verify_spoof_hostname(spoofed_name):
     try:
@@ -19,4 +21,37 @@ def verify_spoof_hostname(spoofed_name):
         else:
             return False
     except:
+        return False
+
+
+
+
+def verify_spoof_motherboard(spoofed_serial):
+    try:
+        # Run the WMIC command to get the BIOS serial number
+        result = subprocess.run(
+            ["wmic", "bios", "get", "serialnumber"],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+
+        # Extract the serial number from the output
+        lines = result.stdout.strip().splitlines()
+        if len(lines) >= 2:
+            current_serial = lines[1].strip()
+        else:
+            return False  # Could not parse output
+
+        # Compare the retrieved serial with the spoofed one
+        if current_serial == spoofed_serial:
+            return True
+        else:
+            return False
+
+    except subprocess.CalledProcessError as e:
+        # Command failed, probably WMIC missing or permissions issue
+        return False
+    except Exception:
+        # Any other error
         return False
