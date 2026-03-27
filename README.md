@@ -58,9 +58,3 @@ python app.py [options]
 - `help`: Help
 - `info`: Show system information
 - `exit`: Exit spoofing mode
-
-## Requirements
-
-- Windows OS (Admin privileges required)
-- Python 3.8+
-- Required Python packages: see requirements.txt 
