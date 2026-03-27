@@ -1,8 +1,9 @@
 .venv
 .idea
-.vscode
 venv
 *.pyc
 .DS_Store
 *.log
 *~
+config.bat
+node_modules
